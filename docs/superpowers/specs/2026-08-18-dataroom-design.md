@@ -64,7 +64,7 @@ signed URLs з коробки, нульова вартість. Авториза
 - Історія версій файлу — модель це дозволяє додати, але UI не робимо (див. §8)
 - Ролі, крім `VIEWER` — колонка `role` є з першого дня, значень поки одне
 - Email-сповіщення при наданні доступу
-- Серверні e2e-тести
+- Автоматичні тести (unit та e2e) — це MVP, задача показати працюючий результат
 - Прев'ю не-PDF форматів
 
 ## 4. Модель даних
@@ -79,7 +79,7 @@ signed URLs з коробки, нульова вартість. Авториза
 | --- | --- | --- | --- |
 | `id` | uuid PK | — | |
 | `email` | citext UK | ні | ідентифікатор користувача |
-| `passwordHash` | text | так | argon2; null у користувачів, що зайшли лише через Google |
+| `passwordHash` | text | так | bcrypt; null у користувачів, що зайшли лише через Google |
 | `googleId` | text UK | так | |
 | `name` | text | ні | |
 | `avatarUrl` | text | так | |
@@ -183,11 +183,10 @@ CHECK (
 | --- | --- | --- | --- |
 | `id` | uuid PK | — | |
 | `name` | text | ні | ім'я логера |
-| `level` | enum `ERROR \| WARN \| INFO` | ні | |
-| `message` | text | ні | |
-| `context` | jsonb | так | стек, url, payload |
+| `level` | enum `ERROR \| WARN \| INFO` | ні | дефолт `ERROR` |
+| `message` | text | ні | вміст логу — параметр `data` |
+| `context` | jsonb | так | стек, url, і за потреби `userId` — заповнюється сервісом із `RequestContext` |
 | `requestId` | text | так | зв'язок із конкретним запитом |
-| `userId` | uuid | так | **без FK** — лог має переживати видалення користувача |
 | `expiresAt` | timestamptz | ні | `now() + TTL`, дефолт 2 тижні |
 | `createdAt` | timestamptz | ні | |
 
@@ -215,7 +214,8 @@ GIN-індекс по масиву робить `? = ANY(path)` індексов
 apps/api/src/
   common/
     prisma/          PrismaService
-    crud/            BaseCrudService + QueryBuilder
+    crud/            BaseCrudService (create, update, delete, findOne,
+                     findMany, findOneWithError, queryBuilder)
     http/            AllExceptionsFilter, TransformInterceptor,
                      ValidationPipe, RequestContext (AsyncLocalStorage)
     logger/          LogService.register()
@@ -245,11 +245,13 @@ apps/api/src/
 export abstract class BaseCrudService<TDelegate extends PrismaDelegate> {
   protected constructor(protected readonly model: TDelegate) {}
 
-  findMany(args?: Parameters<TDelegate['findMany']>[0]) { … }
-  findById(id: string) { … }
   create(data: …) { … }
   update(id: string, data: …) { … }
-  softDelete(id: string) { … }
+  delete(id: string) { … }
+  findOne(args: …) { … }
+  findMany(args?: Parameters<TDelegate['findMany']>[0]) { … }
+  findOneWithError(args: …) { … }   // кидає NotFound, якщо не знайдено
+  queryBuilder(query: ListQueryDto) { … }
 }
 
 @Injectable()
@@ -261,16 +263,26 @@ export class ItemsService extends BaseCrudService<Prisma.ItemDelegate> {
 
 Сервіси наслідують базовий CRUD напряму, вказуючи лише свою модель.
 
-`QueryBuilder` у тому ж `common/crud` перетворює query-параметри (`cursor`, `limit`, `sort`,
-`filter`) на аргументи Prisma. Курсорна пагінація й сортування пишуться один раз і працюють
-однаково в лістингу папки, пошуку, кошику та перегляді логів.
+Склад базового класу: `create`, `update`, `delete`, `findOne`, `findMany`, `findOneWithError`,
+`queryBuilder`.
+
+`findOneWithError` — той самий `findOne`, але кидає `NotFoundException` замість повернення `null`.
+Це прибирає з кожного сервісу однаковий трирядковий блок перевірки й гарантує, що «не знайдено»
+скрізь виглядає однаково.
+
+`queryBuilder` перетворює query-параметри (`cursor`, `limit`, `sort`, `filter`) на аргументи Prisma.
+Курсорна пагінація й сортування пишуться один раз і працюють однаково в лістингу папки, пошуку,
+кошику та перегляді логів.
+
+`delete` у базовому класі — це справжнє видалення рядка. М'яке видалення в кошик специфічне для
+`Item` (треба зачепити все піддерево), тому живе власним методом в `ItemsService`, а не в базі.
 
 ### Обробка запитів
 
 - `ValidationPipe` глобально з `whitelist: true` — зайві поля тіла відсікаються, а не проходять тихо
 - `TransformInterceptor` дає єдину форму успішної відповіді
 - `AllExceptionsFilter` перетворює будь-яку помилку на `{ code, message, requestId }`
-  і сам пише її в `LogService` зі стеком, url, `userId` і тим самим `requestId`
+  і сам пише її в `LogService` зі стеком, url і тим самим `requestId`
 - `RequestContext` на `AsyncLocalStorage` носить `requestId` і `userId` наскрізь,
   щоб не протягувати їх параметром через кожен сервіс
 
@@ -278,10 +290,17 @@ export class ItemsService extends BaseCrudService<Prisma.ItemDelegate> {
 
 ### Логування
 
-`LogService.register(name: string, ttl?: Duration)` повертає іменований логер, чиї записи
-лягають у таблицю `Log` з `expiresAt = now() + ttl` (дефолт 2 тижні). Фонова задача періодично
-видаляє протерміноване. Призначення — відстежувати помилки, що трапились у користувачів.
-Запис у БД асинхронний і не блокує відповідь; збій самого логера ніколи не валить запит.
+```ts
+register(name: string, data: string, ttl?: Duration): Promise<void>
+```
+
+Один виклик — один запис у таблиці `Log`: `name` — ім'я логу, `data` — його вміст,
+`expiresAt = now() + ttl` (дефолт 2 тижні). `requestId` сервіс дістає сам із `RequestContext`,
+його не треба передавати параметром. Рівень за замовчуванням — `ERROR`, бо основне призначення
+таблиці саме відстеження помилок у користувачів.
+
+Фонова задача періодично видаляє протерміноване. Запис у БД асинхронний і не блокує відповідь;
+збій самого логера ніколи не валить запит.
 
 ### Доступ
 
@@ -467,7 +486,8 @@ size, createdAt)` — ці три колонки переїжджають туд
 - **Переписування `path` при переміщенні великого піддерева.** Один `UPDATE` у транзакції;
   на очікуваних обсягах прийнятно. Альтернатива (closure table) складніша в підтримці
   й невиправдана для MVP.
-- **Немає автоматичних тестів.** Свідоме рішення заради бюджету. Найризикованіша логіка —
-  розв'язання доступу; при появі часу тести починаються саме з неї.
+- **Немає автоматичних тестів.** Свідоме рішення: це MVP, і завдання — показати працюючий
+  результат, а не покриття. Найризикованіша логіка — розв'язання доступу; саме з неї тести
+  починалися б, якби проєкт ішов далі.
 - **Валідація типу файлу на клієнті.** При прямому аплоаді сервер не бачить байтів, тому
   `confirm` звіряє розмір і content-type із метаданими об'єкта в сховищі вже після завантаження.

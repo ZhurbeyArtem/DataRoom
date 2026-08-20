@@ -1674,7 +1674,6 @@ git add -A && git commit -m "feat(api): вхід через Google OAuth"
 **Файли:**
 - Створити: `apps/api/src/modules/data-rooms/{data-rooms.module.ts,data-rooms.controller.ts,data-rooms.service.ts}`
 - Створити: `apps/api/src/modules/data-rooms/dto/{create-data-room.dto.ts,update-data-room.dto.ts}`
-- Створити: `apps/api/src/modules/data-rooms/interfaces/data-room.interface.ts`
 - Змінити: `apps/api/src/app.module.ts`
 
 **Інтерфейси:**

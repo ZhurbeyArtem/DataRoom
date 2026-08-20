@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  moduleFormat = "cjs"
+  runtime      = "nodejs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ItemType {
+  FOLDER
+  FILE
+}
+enum ItemStatus {
+  PENDING
+  READY
+}
+enum ShareType {
+  PUBLIC_LINK
+  USER_GRANT
+}
+enum ShareRole {
+  VIEWER
+}
+enum LogLevel {
+  ERROR
+  WARN
+  INFO
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String?
+  googleId     String?  @unique
+  name         String
+  avatarUrl    String?
+  createdAt    DateTime @default(now()) @db.Timestamptz
+
+  dataRooms     DataRoom[]
+  refreshTokens RefreshToken[]
+  items         Item[]
+  shares        Share[]
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime  @db.Timestamptz
+  revokedAt DateTime? @db.Timestamptz
+  createdAt DateTime  @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model DataRoom {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  ownerId    String   @db.Uuid
+  rootItemId String?  @unique @db.Uuid
+  createdAt  DateTime @default(now()) @db.Timestamptz
+
+  owner    User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  rootItem Item?  @relation("RoomRoot", fields: [rootItemId], references: [id])
+  items    Item[] @relation("RoomItems")
+
+  @@index([ownerId])
+}
+
+model Item {
+  id          String     @id @default(uuid()) @db.Uuid
+  dataRoomId  String     @db.Uuid
+  parentId    String?    @db.Uuid
+  path        String[]   @db.Uuid
+  depth       Int        @default(0)
+  type        ItemType
+  name        String
+  storageKey  String?
+  mimeType    String?
+  size        BigInt?
+  status      ItemStatus @default(READY)
+  deletedAt   DateTime?  @db.Timestamptz
+  createdById String     @db.Uuid
+  createdAt   DateTime   @default(now()) @db.Timestamptz
+  updatedAt   DateTime   @updatedAt @db.Timestamptz
+
+  dataRoom  DataRoom  @relation("RoomItems", fields: [dataRoomId], references: [id], onDelete: Cascade)
+  parent    Item?     @relation("ItemChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Item[]    @relation("ItemChildren")
+  createdBy User      @relation(fields: [createdById], references: [id])
+  shares    Share[]
+  rootOf    DataRoom? @relation("RoomRoot")
+
+  @@index([dataRoomId, parentId, deletedAt])
+  @@index([dataRoomId, name])
+  @@index([path], type: Gin)
+}
+
+model Share {
+  id           String    @id @default(uuid()) @db.Uuid
+  itemId       String    @db.Uuid
+  type         ShareType
+  token        String?   @unique
+  granteeEmail String?
+  role         ShareRole @default(VIEWER)
+  expiresAt    DateTime? @db.Timestamptz
+  revokedAt    DateTime? @db.Timestamptz
+  createdById  String    @db.Uuid
+  createdAt    DateTime  @default(now()) @db.Timestamptz
+
+  item      Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@index([itemId])
+  @@index([granteeEmail])
+}
+
+model Log {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  level     LogLevel @default(ERROR)
+  message   String
+  context   Json?
+  requestId String?
+  expiresAt DateTime @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  @@index([expiresAt])
+  @@index([name, createdAt])
+}

@@ -41,6 +41,15 @@ TanStack Query 5, Zustand, Tailwind 3, shadcn/ui, Storybook 8.
 - **`dataRoomId` фільтрується в кожному запиті до `Item`** — це межа орендаря.
 - **Мова коду й коментарів — англійська.** Мова комітів і UI — українська.
 - **Коміт після кожної задачі**, повідомлення в стилі Conventional Commits.
+- **Prisma 7, не 5.** Генератор `prisma-client` видає TypeScript у `src/generated/prisma`,
+  рядок підключення живе в `prisma.config.ts`, рантайм працює через драйвер-адаптер
+  `@prisma/adapter-pg`. Наслідок для всього коду нижче: моделі та енуми імпортуються
+  **не** з `@prisma/client`, а з барелю `src/common/prisma/client.ts` — відносним шляхом
+  за глибиною файлу (`../../common/prisma/client` з `modules/<модуль>/`,
+  `../../../common/prisma/client` з `modules/<модуль>/<підпапка>/`). Скрізь, де в коді
+  плану стоїть `from '@prisma/client'`, підставляй цей шлях.
+- **Значення enum у схемі Prisma — кожне з нового рядка.** Однорядковий
+  `enum ItemType { FOLDER FILE }` не валідний.
 
 ---
 
@@ -179,8 +188,14 @@ npx @nestjs/cli new api --directory apps/api --package-manager npm --skip-git
 ```
 
 ```bash
-cd apps/api && npm i @nestjs/config @nestjs/swagger @nestjs/schedule class-validator class-transformer @prisma/client && npm i -D prisma
+npm install --workspace apps/api @nestjs/config @nestjs/swagger @nestjs/schedule class-validator class-transformer @prisma/client @prisma/adapter-pg
 ```
+
+```bash
+npm install --workspace apps/api --save-dev prisma dotenv
+```
+
+`dotenv` потрібен `prisma.config.ts`, `@prisma/adapter-pg` — рантайму клієнта.
 
 - [ ] **Крок 3: Створити проєкт Supabase і записати змінні оточення**
 
@@ -216,19 +231,40 @@ WEB_ORIGIN="http://localhost:5173"
 
 ```prisma
 generator client {
-  provider = "prisma-client-js"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+  runtime      = "nodejs"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-enum ItemType   { FOLDER FILE }
-enum ItemStatus { PENDING READY }
-enum ShareType  { PUBLIC_LINK USER_GRANT }
-enum ShareRole  { VIEWER }
-enum LogLevel   { ERROR WARN INFO }
+enum ItemType {
+  FOLDER
+  FILE
+}
+
+enum ItemStatus {
+  PENDING
+  READY
+}
+
+enum ShareType {
+  PUBLIC_LINK
+  USER_GRANT
+}
+
+enum ShareRole {
+  VIEWER
+}
+
+enum LogLevel {
+  ERROR
+  WARN
+  INFO
+}
 
 model User {
   id           String   @id @default(uuid()) @db.Uuid
@@ -396,12 +432,34 @@ npx prisma migrate dev
 
 Створити `apps/api/src/common/prisma/prisma.service.ts`:
 
+Спершу барель, який знає шлях генерації — `apps/api/src/common/prisma/client.ts`:
+
+```ts
+/**
+ * Єдине місце, яке знає, куди Prisma 7 генерує клієнт.
+ * Решта коду імпортує моделі та енуми звідси, тому зміна шляху генерації
+ * зачіпає один файл, а не весь застосунок.
+ */
+export * from '../../generated/prisma/client';
+```
+
+Далі сам сервіс:
+
 ```ts
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from './client';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+  constructor() {
+    // Prisma 7 підключається через драйвер-адаптер, а не через url у схемі.
+    // Рядок підключення в prisma.config.ts потрібен лише CLI для міграцій.
+    super({
+      adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+    });
+  }
+
   async onModuleInit(): Promise<void> {
     await this.$connect();
   }
@@ -411,6 +469,15 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 }
 ```
+
+**`moduleFormat = "cjs"` у генераторі — не косметика.** Без нього Node вантажить
+згенерований клієнт як ES-модуль і падає з `ReferenceError: exports is not defined
+in ES module scope`, бо решта застосунку — CommonJS.
+
+Ще одна пастка: `prisma.config.ts` лежить поза `src/`, і якщо його не виключити,
+tsc розширює корінь компіляції й кладе результат у `dist/src/` замість `dist/`,
+через що `node dist/main` перестає існувати. У `tsconfig.json` виставити
+`"rootDir": "./src"`, `"include": ["src/**/*"]`, `"exclude": ["node_modules", "dist"]`.
 
 Створити `apps/api/src/common/prisma/prisma.module.ts`:
 

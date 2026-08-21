@@ -10,6 +10,7 @@ import { RequestContextMiddleware } from './common/http/request-context.middlewa
 import { CleanupService } from './common/jobs/cleanup.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+import { DataRoomsModule } from './modules/data-rooms/data-rooms.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { UsersModule } from './modules/users/users.module';
     LogModule,
     UsersModule,
     AuthModule,
+    DataRoomsModule,
   ],
   providers: [
     CleanupService,

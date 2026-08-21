@@ -17,10 +17,22 @@ export class UsersService extends BaseCrudService<Prisma.UserDelegate> {
     return email.trim().toLowerCase();
   }
 
+  /**
+   * Нормалізація захована тут, тому виклики ззовні не мусять про неї пам'ятати.
+   * Якби кожен викликав findOne самостійно, достатньо було б один раз забути
+   * normalizeEmail — і вхід перестав би знаходити користувача, що ввів email
+   * з великої літери.
+   */
+  findByEmail(email: string): Promise<User | null> {
+    return this.findOne({ where: { email: UsersService.normalizeEmail(email) } });
+  }
+
   async createLocal(input: { email: string; password: string; name: string }): Promise<User> {
     const email = UsersService.normalizeEmail(input.email);
 
-  const checkEmail = this.findOne({ where: { email: UsersService.normalizeEmail(email) } })
+    // Від дубля захищає унікальний індекс на email. Явна перевірка потрібна
+    // лише для того, щоб у типовому випадку користувач бачив зрозуміле
+    // повідомлення, а не помилку БД.
     if (await this.findByEmail(email)) {
       throw new ConflictException('Користувач із таким email уже існує');
     }

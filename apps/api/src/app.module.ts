@@ -13,6 +13,7 @@ import { UsersModule } from './modules/users/users.module';
 import { DataRoomsModule } from './modules/data-rooms/data-rooms.module';
 import { ItemsModule } from './modules/items/items.module';
 import { StorageModule } from './modules/storage/storage.module';
+import { SharesModule } from './modules/shares/shares.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { StorageModule } from './modules/storage/storage.module';
     DataRoomsModule,
     ItemsModule,
     StorageModule,
+    SharesModule,
   ],
   providers: [
     CleanupService,

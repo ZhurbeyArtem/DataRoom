@@ -1,10 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { BaseCrudService } from '../../common/crud/base-crud.service';
 import { KeysetField, toPage } from '../../common/crud/cursor.util';
 import type { Paginated } from '../../common/crud/interfaces/paginated.interface';
 import { Item, ItemStatus, ItemType, Prisma } from '../../common/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { CreateFolderDto } from './dto/create-folder.dto';
 import { ListItemsDto } from './dto/list-items.dto';
 import { assertNotDescendant } from './helpers/assert-not-descendant.helper';
 import { buildChildPath } from './helpers/build-item-path.helper';
@@ -14,31 +13,27 @@ import type { Breadcrumb, ItemDto, SubtreeStats } from './interfaces/item.interf
 
 /**
  * Порядок сортування: спершу папки, потім файли, всередині — за іменем.
- * Папки йдуть першими тому, що ItemType оголошений як FOLDER, FILE —
- * Postgres сортує enum у порядку оголошення, а не за алфавітом.
+ * order обовʼязковий саме тут: Prisma не вміє gt/lt для enum, тому «далі
+ * за порядком» для type виражається через in зі списком наступних значень.
  */
 const KEYSET_FIELDS: readonly KeysetField[] = [
-  // order обовʼязковий саме тут: Prisma не вміє gt/lt для enum, тому «далі
-  // за порядком» для type виражається через in зі списком наступних значень.
   { field: 'type', order: [ItemType.FOLDER, ItemType.FILE] },
   { field: 'name' },
   { field: 'id' },
 ];
 
+/**
+ * Методи приймають уже завантажений Item, а не його id: доступ перевіряє
+ * AccessGuard, і він же кладе цей рядок у запит. Тому сервіс не читає його
+ * з БД удруге і не дублює перевірку прав.
+ */
 @Injectable()
 export class ItemsService extends BaseCrudService<Prisma.ItemDelegate> {
   constructor(private readonly prisma: PrismaService) {
     super(prisma.item);
   }
 
-  /**
-   * Доступ поки перевіряється власністю кімнати через реляційний фільтр
-   * dataRoom.ownerId — один запит, без окремої перевірки. У Задачі 9
-   * це замінить AccessGuard, який додасть до власника ще й тих, кому
-   * поділилися.
-   */
-  async listChildren(query: ListItemsDto, ownerId: string): Promise<Paginated<ItemDto>> {
-    const parentId = await this.resolveParentId(query, ownerId);
+  async listChildren(parentId: string, query: ListItemsDto): Promise<Paginated<ItemDto>> {
     const limit = query.limit ?? 50;
     const built = this.queryBuilder(query, { fields: KEYSET_FIELDS });
 
@@ -50,7 +45,6 @@ export class ItemsService extends BaseCrudService<Prisma.ItemDelegate> {
         // Ховає незавершені аплоади: файл зʼявляється в списку тоді,
         // коли він реально є у сховищі, а не коли його почали вантажити.
         status: ItemStatus.READY,
-        dataRoom: { ownerId },
       },
       orderBy: built.orderBy,
       take: built.take,
@@ -66,16 +60,13 @@ export class ItemsService extends BaseCrudService<Prisma.ItemDelegate> {
    * цього шлях і зберігається матеріалізованим. Прохід угору по parentId
    * коштував би стільки ж запитів, скільки рівнів вкладеності.
    */
-  async getWithBreadcrumbs(
-    itemId: string,
-    ownerId: string,
-  ): Promise<{ item: ItemDto; breadcrumbs: Breadcrumb[] }> {
-    const item = await this.loadItemOrFail(itemId, ownerId);
-
+  async getWithBreadcrumbs(item: Item): Promise<{
+    item: ItemDto;
+    breadcrumbs: Breadcrumb[];
+  }> {
     // Тут делегат береться напряму, а не через базовий findMany: обгортка
     // оголошує тип повернення як ReturnType<TDelegate['findMany']> і через це
-    // втрачає звуження від select. Для breadcrumbs потрібні лише id та name,
-    // тягнути повні рядки з path кожного предка було б марно.
+    // втрачає звуження від select. Для breadcrumbs потрібні лише id та name.
     const ancestors = await this.prisma.item.findMany({
       where: { id: { in: item.path } },
       select: { id: true, name: true },
@@ -96,9 +87,7 @@ export class ItemsService extends BaseCrudService<Prisma.ItemDelegate> {
    * на GIN-індекс. Сам вузол виключений — у діалозі видалення цікавить,
    * що всередині, а не «і ще одна папка, та, яку ти видаляєш».
    */
-  async getSubtreeStats(itemId: string, ownerId: string): Promise<SubtreeStats> {
-    const item = await this.loadItemOrFail(itemId, ownerId);
-
+  async getSubtreeStats(item: Item): Promise<SubtreeStats> {
     const [row] = await this.prisma.$queryRaw<
       { folders: bigint; files: bigint; bytes: bigint }[]
     >`
@@ -120,9 +109,10 @@ export class ItemsService extends BaseCrudService<Prisma.ItemDelegate> {
     };
   }
 
-  async createFolder(dto: CreateFolderDto, ownerId: string): Promise<ItemDto> {
-    const parent = await this.loadFolderOrFail(dto.parentId, ownerId);
-    const name = await resolveNameConflict(this.prisma, parent.id, dto.name);
+  async createFolder(parent: Item, name: string, createdById: string): Promise<ItemDto> {
+    this.assertFolder(parent);
+
+    const free = await resolveNameConflict(this.prisma, parent.id, name);
     const { path, depth } = buildChildPath(parent);
 
     const created = await this.create({
@@ -132,17 +122,15 @@ export class ItemsService extends BaseCrudService<Prisma.ItemDelegate> {
         path,
         depth,
         type: ItemType.FOLDER,
-        name,
-        createdById: ownerId,
+        name: free,
+        createdById,
       },
     });
 
     return toItemDto(created);
   }
 
-  async rename(itemId: string, name: string, ownerId: string): Promise<ItemDto> {
-    const item = await this.loadItemOrFail(itemId, ownerId);
-
+  async rename(item: Item, name: string): Promise<ItemDto> {
     if (item.parentId === null) {
       throw new BadRequestException('Кореневу папку перейменовують через кімнату');
     }
@@ -156,13 +144,10 @@ export class ItemsService extends BaseCrudService<Prisma.ItemDelegate> {
    * префікс path у всіх нащадків. Обидві дії в одній транзакції: наполовину
    * переміщене дерево було б гіршим станом, ніж непереміщене.
    */
-  async move(itemId: string, targetParentId: string, ownerId: string): Promise<ItemDto> {
-    const item = await this.loadItemOrFail(itemId, ownerId);
-    const target = await this.loadFolderOrFail(targetParentId, ownerId);
-
-    if (item.dataRoomId !== target.dataRoomId) {
-      throw new BadRequestException('Переміщення між кімнатами не підтримується');
-    }
+  async move(item: Item, targetParentId: string): Promise<ItemDto> {
+    // Ціль шукається в межах тієї ж кімнати, тому окрема перевірка прав
+    // не потрібна: доступ до самого item уже підтверджено гвардом.
+    const target = await this.loadFolderInRoom(targetParentId, item.dataRoomId);
 
     assertNotDescendant(item, target);
 
@@ -170,16 +155,16 @@ export class ItemsService extends BaseCrudService<Prisma.ItemDelegate> {
 
     const name = await resolveNameConflict(this.prisma, target.id, item.name, item.id);
     const { path: newPath, depth: newDepth } = buildChildPath(target);
-    const oldPrefixLength = item.path.length;
+    const sliceFrom = item.path.length + 1;
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      // Нащадки: перші oldPrefixLength елементів шляху міняємо на новий
+      // Нащадки: перші item.path.length елементів шляху міняємо на новий
       // префікс. Postgres нарізає масиви з одиниці, тому зріз із +1.
       await tx.$executeRaw`
         UPDATE "Item"
-        SET "path"  = ${newPath}::uuid[] || "path"[${oldPrefixLength + 1}:],
+        SET "path"  = ${newPath}::uuid[] || "path"[${sliceFrom}:],
             "depth" = coalesce(
-              array_length(${newPath}::uuid[] || "path"[${oldPrefixLength + 1}:], 1), 0)
+              array_length(${newPath}::uuid[] || "path"[${sliceFrom}:], 1), 0)
         WHERE "dataRoomId" = ${item.dataRoomId}::uuid
           AND ${item.id}::uuid = ANY("path")
       `;
@@ -193,18 +178,8 @@ export class ItemsService extends BaseCrudService<Prisma.ItemDelegate> {
     return toItemDto(updated);
   }
 
-  private async loadFolderOrFail(itemId: string, ownerId: string): Promise<Item> {
-    const item = await this.loadItemOrFail(itemId, ownerId);
-    if (item.type !== ItemType.FOLDER) {
-      throw new BadRequestException('Батьком може бути лише папка');
-    }
-    return item;
-  }
-
   /** Мʼяке видалення накриває вузол і все його піддерево одним запитом. */
-  async moveToTrash(itemId: string, ownerId: string): Promise<void> {
-    const item = await this.loadItemOrFail(itemId, ownerId);
-
+  async moveToTrash(item: Item): Promise<void> {
     if (item.parentId === null) {
       throw new BadRequestException(
         'Кореневу папку не можна видалити окремо від кімнати',
@@ -225,14 +200,15 @@ export class ItemsService extends BaseCrudService<Prisma.ItemDelegate> {
   }
 
   /**
-   * Відновлення дзеркальне, але піднімає лише те, що зникло разом із цим
-   * вузлом: один UPDATE проставляє всім рядкам партії однаковий now(), тому
-   * рівність deletedAt і є ознакою партії. Дитина, яку видалили окремо
-   * раніше, лишається в кошику — інакше відновлення батька мовчки повертало б
-   * те, що користувач видаляв свідомо й окремо.
+   * Відновлення та кошик лишаються перевіркою власності, а не гвардом:
+   * AccessGuard шукає лише живі вузли, а тут ідеться саме про видалені.
+   * Ділитися кошиком ми й не збираємось — це особиста корзина власника.
    *
-   * Друга поправка: якщо батька встигли видалити, повертати нікуди — тоді
-   * елемент піднімається в корінь кімнати.
+   * Піднімається лише те, що зникло разом із цим вузлом: один UPDATE
+   * проставляє всім рядкам партії однаковий час, тому рівність deletedAt
+   * і є ознакою партії. Дитина, яку видалили окремо раніше, лишається
+   * в кошику — інакше відновлення батька мовчки повертало б те, що
+   * користувач видаляв свідомо й окремо.
    */
   async restore(itemId: string, ownerId: string): Promise<ItemDto> {
     const item = await this.findOneWithError(
@@ -288,33 +264,20 @@ export class ItemsService extends BaseCrudService<Prisma.ItemDelegate> {
     return rows.map(toItemDto);
   }
 
-  loadItemOrFail(itemId: string, ownerId: string): Promise<Item> {
-    return this.findOneWithError(
-      { where: { id: itemId, deletedAt: null, dataRoom: { ownerId } } },
-      'Елемент не знайдено',
-    );
+  private assertFolder(item: Item): void {
+    if (item.type !== ItemType.FOLDER) {
+      throw new BadRequestException('Батьком може бути лише папка');
+    }
   }
 
-  /**
-   * Лістинг просять або по конкретній папці, або по кімнаті — тоді показуємо
-   * її корінь. Обидва варіанти зводяться до одного parentId.
-   */
-  private async resolveParentId(query: ListItemsDto, ownerId: string): Promise<string> {
-    if (query.parentId) return query.parentId;
-
-    if (!query.dataRoomId) {
-      throw new BadRequestException('Потрібен parentId або dataRoomId');
-    }
-
-    const room = await this.prisma.dataRoom.findFirst({
-      where: { id: query.dataRoomId, ownerId },
-      select: { rootItemId: true },
+  private async loadFolderInRoom(itemId: string, dataRoomId: string): Promise<Item> {
+    const item = await this.findOne({
+      where: { id: itemId, dataRoomId, deletedAt: null },
     });
 
-    if (!room?.rootItemId) {
-      throw new BadRequestException('Кімнату не знайдено або в неї немає кореня');
-    }
+    if (!item) throw new NotFoundException('Папку призначення не знайдено');
+    this.assertFolder(item);
 
-    return room.rootItemId;
+    return item;
   }
 }

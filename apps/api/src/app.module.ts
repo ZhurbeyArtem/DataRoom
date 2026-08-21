@@ -8,6 +8,8 @@ import { AllExceptionsFilter } from './common/http/all-exceptions.filter';
 import { TransformInterceptor } from './common/http/transform.interceptor';
 import { RequestContextMiddleware } from './common/http/request-context.middleware';
 import { CleanupService } from './common/jobs/cleanup.service';
+import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { CleanupService } from './common/jobs/cleanup.service';
     ScheduleModule.forRoot(),
     PrismaModule,
     LogModule,
+    UsersModule,
+    AuthModule,
   ],
   providers: [
     CleanupService,

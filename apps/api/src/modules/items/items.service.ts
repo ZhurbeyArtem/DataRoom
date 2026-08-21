@@ -5,11 +5,17 @@ import type { Paginated } from '../../common/crud/interfaces/paginated.interface
 import { Item, ItemStatus, ItemType, Prisma } from '../../common/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ListItemsDto } from './dto/list-items.dto';
+import { SearchItemsDto } from './dto/search-items.dto';
 import { assertNotDescendant } from './helpers/assert-not-descendant.helper';
 import { buildChildPath } from './helpers/build-item-path.helper';
 import { resolveNameConflict } from './helpers/resolve-name-conflict.helper';
 import { toItemDto } from './helpers/to-item-dto.helper';
-import type { Breadcrumb, ItemDto, SubtreeStats } from './interfaces/item.interface';
+import type {
+  Breadcrumb,
+  ItemDto,
+  SearchResultItem,
+  SubtreeStats,
+} from './interfaces/item.interface';
 
 /**
  * Порядок сортування: спершу папки, потім файли, всередині — за іменем.
@@ -107,6 +113,66 @@ export class ItemsService extends BaseCrudService<Prisma.ItemDelegate> {
       files: Number(row?.files ?? 0),
       bytes: Number(row?.bytes ?? 0),
     };
+  }
+
+  /**
+   * Пошук по всій кімнаті, а не по одній папці — тому фільтр по dataRoomId
+   * без parentId. Курсор той самий, що й у лістингу, лише без type у ключі:
+   * у результатах пошуку сортувати папки поперед файлів немає сенсу.
+   *
+   * `contains` компілюється в ILIKE '%q%', який індекс (dataRoomId, name)
+   * не прискорює — але він обмежує сканування однією кімнатою, і на
+   * очікуваних обсягах цього досить. Якщо стане вузьким місцем, наступний
+   * крок — триграмний GIN-індекс, без зміни схеми й коду сервісу.
+   */
+  async search(query: SearchItemsDto): Promise<Paginated<SearchResultItem>> {
+    const limit = query.limit ?? 30;
+    const fields: readonly KeysetField[] = [{ field: 'name' }, { field: 'id' }];
+    const built = this.queryBuilder(query, { fields, defaultLimit: 30 });
+
+    const rows = await this.findMany({
+      where: {
+        ...built.where,
+        dataRoomId: query.dataRoomId,
+        deletedAt: null,
+        status: ItemStatus.READY,
+        name: { contains: query.q, mode: 'insensitive' },
+      },
+      orderBy: built.orderBy,
+      take: built.take,
+    });
+
+    const page = toPage(rows, limit, fields);
+
+    return {
+      data: await this.attachLocations(page.data),
+      nextCursor: page.nextCursor,
+    };
+  }
+
+  /**
+   * Імена всіх предків усіх результатів беруться ОДНИМ запитом, а не по
+   * одному на рядок: інакше сторінка з 30 результатів коштувала б 30
+   * додаткових запитів.
+   */
+  private async attachLocations(items: Item[]): Promise<SearchResultItem[]> {
+    const ancestorIds = [...new Set(items.flatMap((item) => item.path))];
+
+    const ancestors = ancestorIds.length
+      ? await this.prisma.item.findMany({
+          where: { id: { in: ancestorIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+
+    const byId = new Map(ancestors.map((row) => [row.id, row]));
+
+    return items.map((item) => ({
+      ...toItemDto(item),
+      location: item.path
+        .map((id) => byId.get(id))
+        .filter((crumb): crumb is Breadcrumb => crumb !== undefined),
+    }));
   }
 
   async createFolder(parent: Item, name: string, createdById: string): Promise<ItemDto> {

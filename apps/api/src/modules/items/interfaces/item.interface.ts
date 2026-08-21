@@ -23,3 +23,9 @@ export interface SubtreeStats {
   files: number;
   bytes: number;
 }
+
+/** Результат пошуку несе шлях розташування: без нього два однойменні
+ * файли в різних папках неможливо розрізнити у списку. */
+export interface SearchResultItem extends ItemDto {
+  location: Breadcrumb[];
+}

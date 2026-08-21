@@ -25,7 +25,13 @@ import { CreateFolderDto } from './dto/create-folder.dto';
 import { ListItemsDto } from './dto/list-items.dto';
 import { MoveItemDto } from './dto/move-item.dto';
 import { RenameItemDto } from './dto/rename-item.dto';
-import type { Breadcrumb, ItemDto, SubtreeStats } from './interfaces/item.interface';
+import { SearchItemsDto } from './dto/search-items.dto';
+import type {
+  Breadcrumb,
+  ItemDto,
+  SearchResultItem,
+  SubtreeStats,
+} from './interfaces/item.interface';
 import { ItemsService } from './items.service';
 
 /**
@@ -65,6 +71,20 @@ export class ItemsController {
   ): Promise<ItemDto[]> {
     await this.rooms.assertOwned(dataRoomId, user.id);
     return this.items.listTrash(dataRoomId, user.id);
+  }
+
+  // Так само вище за @Get(':id'): інакше слово "search" піде в ParseUUIDPipe.
+  // Пошук іде по всій кімнаті, тому спирається на власність, а не на
+  // AccessGuard — той працює з конкретним вузлом, а не з кімнатою.
+  @Get('search')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Пошук за іменем у межах кімнати; лише власник' })
+  async search(
+    @CurrentUser() user: AuthUser,
+    @Query() query: SearchItemsDto,
+  ): Promise<Paginated<SearchResultItem>> {
+    await this.rooms.assertOwned(query.dataRoomId, user.id);
+    return this.items.search(query);
   }
 
   @Get(':id')

@@ -1399,10 +1399,13 @@ import { AuthUser, JwtPayload } from '../interfaces/jwt-payload.interface';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly users: UsersService) {
+  constructor(
+    private readonly users: UsersService,
+    config: ConfigService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: process.env.JWT_ACCESS_SECRET as string,
+      secretOrKey: config.getOrThrow<string>('JWT_ACCESS_SECRET'),
     });
   }
 
@@ -1537,9 +1540,19 @@ import { JwtStrategy } from './strategies/jwt.strategy';
   imports: [
     UsersModule,
     PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_ACCESS_SECRET,
-      signOptions: { expiresIn: process.env.JWT_ACCESS_TTL ?? '15m' },
+    // Саме registerAsync, а не register: синхронний варіант читає process.env
+    // у момент імпорту модуля, тобто ДО того, як ConfigModule завантажить .env.
+    // Секрет виявиться undefined, і кожна видача токена впаде в 500.
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: config.getOrThrow<string>('JWT_ACCESS_SECRET'),
+        signOptions: {
+          // @nestjs/jwt приймає не будь-який рядок, а формат ms: '15m', '7d',
+          // тому потрібен cast до StringValue з пакета ms.
+          expiresIn: config.get<string>('JWT_ACCESS_TTL', '15m') as StringValue,
+        },
+      }),
     }),
   ],
   controllers: [AuthController],

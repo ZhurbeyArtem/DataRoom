@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { ListQueryDto } from './dto/list-query.dto';
-import { decodeCursor, keysetWhere } from './cursor.util';
+import { decodeCursor, keysetWhere, KeysetField } from './cursor.util';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // `any` тут навмисний і локалізований: це форма, якій мають відповідати всі
@@ -17,7 +17,7 @@ export interface PrismaDelegate {
 
 export interface KeysetConfig {
   /** Поля сортування в порядку пріоритету. Останнім завжди має бути `id`. */
-  fields: string[];
+  fields: readonly KeysetField[];
   defaultLimit?: number;
 }
 
@@ -78,7 +78,7 @@ export abstract class BaseCrudService<TDelegate extends PrismaDelegate> {
     const limit = query.limit ?? config.defaultLimit ?? 50;
 
     const where = query.cursor ? keysetWhere(decodeCursor(query.cursor)) : {};
-    const orderBy = config.fields.map((field) => ({ [field]: order }));
+    const orderBy = config.fields.map(({ field }) => ({ [field]: order }));
 
     return { where, orderBy, take: limit + 1 };
   }

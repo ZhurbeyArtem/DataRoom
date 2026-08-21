@@ -4,7 +4,11 @@ import { KeysetField, toPage } from '../../common/crud/cursor.util';
 import type { Paginated } from '../../common/crud/interfaces/paginated.interface';
 import { Item, ItemStatus, ItemType, Prisma } from '../../common/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { CreateFolderDto } from './dto/create-folder.dto';
 import { ListItemsDto } from './dto/list-items.dto';
+import { assertNotDescendant } from './helpers/assert-not-descendant.helper';
+import { buildChildPath } from './helpers/build-item-path.helper';
+import { resolveNameConflict } from './helpers/resolve-name-conflict.helper';
 import { toItemDto } from './helpers/to-item-dto.helper';
 import type { Breadcrumb, ItemDto, SubtreeStats } from './interfaces/item.interface';
 
@@ -114,6 +118,174 @@ export class ItemsService extends BaseCrudService<Prisma.ItemDelegate> {
       files: Number(row?.files ?? 0),
       bytes: Number(row?.bytes ?? 0),
     };
+  }
+
+  async createFolder(dto: CreateFolderDto, ownerId: string): Promise<ItemDto> {
+    const parent = await this.loadFolderOrFail(dto.parentId, ownerId);
+    const name = await resolveNameConflict(this.prisma, parent.id, dto.name);
+    const { path, depth } = buildChildPath(parent);
+
+    const created = await this.create({
+      data: {
+        dataRoomId: parent.dataRoomId,
+        parentId: parent.id,
+        path,
+        depth,
+        type: ItemType.FOLDER,
+        name,
+        createdById: ownerId,
+      },
+    });
+
+    return toItemDto(created);
+  }
+
+  async rename(itemId: string, name: string, ownerId: string): Promise<ItemDto> {
+    const item = await this.loadItemOrFail(itemId, ownerId);
+
+    if (item.parentId === null) {
+      throw new BadRequestException('Кореневу папку перейменовують через кімнату');
+    }
+
+    const free = await resolveNameConflict(this.prisma, item.parentId, name, item.id);
+    return toItemDto(await this.update({ where: { id: item.id }, data: { name: free } }));
+  }
+
+  /**
+   * Переміщення = новий parentId і новий path у самого вузла плюс переписаний
+   * префікс path у всіх нащадків. Обидві дії в одній транзакції: наполовину
+   * переміщене дерево було б гіршим станом, ніж непереміщене.
+   */
+  async move(itemId: string, targetParentId: string, ownerId: string): Promise<ItemDto> {
+    const item = await this.loadItemOrFail(itemId, ownerId);
+    const target = await this.loadFolderOrFail(targetParentId, ownerId);
+
+    if (item.dataRoomId !== target.dataRoomId) {
+      throw new BadRequestException('Переміщення між кімнатами не підтримується');
+    }
+
+    assertNotDescendant(item, target);
+
+    if (item.parentId === target.id) return toItemDto(item);
+
+    const name = await resolveNameConflict(this.prisma, target.id, item.name, item.id);
+    const { path: newPath, depth: newDepth } = buildChildPath(target);
+    const oldPrefixLength = item.path.length;
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      // Нащадки: перші oldPrefixLength елементів шляху міняємо на новий
+      // префікс. Postgres нарізає масиви з одиниці, тому зріз із +1.
+      await tx.$executeRaw`
+        UPDATE "Item"
+        SET "path"  = ${newPath}::uuid[] || "path"[${oldPrefixLength + 1}:],
+            "depth" = coalesce(
+              array_length(${newPath}::uuid[] || "path"[${oldPrefixLength + 1}:], 1), 0)
+        WHERE "dataRoomId" = ${item.dataRoomId}::uuid
+          AND ${item.id}::uuid = ANY("path")
+      `;
+
+      return tx.item.update({
+        where: { id: item.id },
+        data: { parentId: target.id, path: newPath, depth: newDepth, name },
+      });
+    });
+
+    return toItemDto(updated);
+  }
+
+  private async loadFolderOrFail(itemId: string, ownerId: string): Promise<Item> {
+    const item = await this.loadItemOrFail(itemId, ownerId);
+    if (item.type !== ItemType.FOLDER) {
+      throw new BadRequestException('Батьком може бути лише папка');
+    }
+    return item;
+  }
+
+  /** Мʼяке видалення накриває вузол і все його піддерево одним запитом. */
+  async moveToTrash(itemId: string, ownerId: string): Promise<void> {
+    const item = await this.loadItemOrFail(itemId, ownerId);
+
+    if (item.parentId === null) {
+      throw new BadRequestException(
+        'Кореневу папку не можна видалити окремо від кімнати',
+      );
+    }
+
+    // date_trunc до мілісекунд — не косметика. now() у Postgres має
+    // мікросекундну точність, а JS Date тримає лише мілісекунди, тому
+    // прочитане через Prisma значення НІКОЛИ не дорівнювало б збереженому.
+    // Відновлення (нижче) звіряє партію саме за рівністю deletedAt.
+    await this.prisma.$executeRaw`
+      UPDATE "Item"
+      SET "deletedAt" = date_trunc('milliseconds', now())
+      WHERE "dataRoomId" = ${item.dataRoomId}::uuid
+        AND ("id" = ${item.id}::uuid OR ${item.id}::uuid = ANY("path"))
+        AND "deletedAt" IS NULL
+    `;
+  }
+
+  /**
+   * Відновлення дзеркальне, але піднімає лише те, що зникло разом із цим
+   * вузлом: один UPDATE проставляє всім рядкам партії однаковий now(), тому
+   * рівність deletedAt і є ознакою партії. Дитина, яку видалили окремо
+   * раніше, лишається в кошику — інакше відновлення батька мовчки повертало б
+   * те, що користувач видаляв свідомо й окремо.
+   *
+   * Друга поправка: якщо батька встигли видалити, повертати нікуди — тоді
+   * елемент піднімається в корінь кімнати.
+   */
+  async restore(itemId: string, ownerId: string): Promise<ItemDto> {
+    const item = await this.findOneWithError(
+      { where: { id: itemId, deletedAt: { not: null }, dataRoom: { ownerId } } },
+      'Елемент не знайдено в кошику',
+    );
+
+    const parent = item.parentId
+      ? await this.findOne({ where: { id: item.parentId, deletedAt: null } })
+      : null;
+
+    const restored = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`
+        UPDATE "Item"
+        SET "deletedAt" = NULL
+        WHERE "dataRoomId" = ${item.dataRoomId}::uuid
+          AND ("id" = ${item.id}::uuid OR ${item.id}::uuid = ANY("path"))
+          AND "deletedAt" = ${item.deletedAt}
+      `;
+
+      if (parent) {
+        const name = await resolveNameConflict(
+          this.prisma,
+          parent.id,
+          item.name,
+          item.id,
+        );
+        return tx.item.update({ where: { id: item.id }, data: { name } });
+      }
+
+      const root = await tx.item.findFirstOrThrow({
+        where: { dataRoomId: item.dataRoomId, parentId: null },
+      });
+      const name = await resolveNameConflict(this.prisma, root.id, item.name, item.id);
+      const { path, depth } = buildChildPath(root);
+
+      return tx.item.update({
+        where: { id: item.id },
+        data: { parentId: root.id, path, depth, name },
+      });
+    });
+
+    return toItemDto(restored);
+  }
+
+  async listTrash(dataRoomId: string, ownerId: string): Promise<ItemDto[]> {
+    const rows = await this.findMany({
+      where: { dataRoomId, deletedAt: { not: null }, dataRoom: { ownerId } },
+      orderBy: { deletedAt: 'desc' },
+      take: 200,
+    });
+
+    return rows.map(toItemDto);
   }
 
   loadItemOrFail(itemId: string, ownerId: string): Promise<Item> {

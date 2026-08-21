@@ -160,7 +160,7 @@ signed URLs з коробки, нульова вартість. Авториза
 | `itemId` | uuid FK → Item | ні | ціль: кімната (=її корінь), папка або файл |
 | `type` | enum `PUBLIC_LINK \| USER_GRANT` | ні | |
 | `token` | text UK | так | 32 випадкові байти в url-safe base64; лише для `PUBLIC_LINK` |
-| `granteeEmail` | citext | так | лише для `USER_GRANT` |
+| `granteeEmail` | text | так | лише для `USER_GRANT`; нормалізований так само, як `User.email` |
 | `role` | enum `VIEWER` | ні | одне значення зараз; колонка існує заради розширення |
 | `expiresAt` | timestamptz | так | `null` = безстроково |
 | `revokedAt` | timestamptz | так | відкликання; рядок не видаляємо, щоб лишався слід |

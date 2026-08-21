@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { StorageService } from '../../modules/storage/storage.service';
 import { ItemStatus } from '../prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -9,7 +10,10 @@ const ORPHAN_UPLOAD_TTL_MS = 60 * 60 * 1000;
 export class CleanupService {
   private readonly logger = new Logger(CleanupService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   /**
    * Окремий cron-сервіс на безкоштовному Render недоступний, тому чистка
@@ -21,19 +25,39 @@ export class CleanupService {
       where: { expiresAt: { lt: new Date() } },
     });
 
-    // Аплоад, що не дійшов до confirm за годину, вважається обірваним.
-    // Видалення блобів-сиріт зі сховища додається в Задачі 8.
-    const uploads = await this.prisma.item.deleteMany({
+    const uploads = await this.removeOrphanUploads();
+
+    if (logs.count > 0 || uploads > 0) {
+      this.logger.log(`Прибрано ${logs.count} логів і ${uploads} незавершених аплоадів`);
+    }
+  }
+
+  /**
+   * Аплоад, що не дійшов до confirm за годину, вважається обірваним.
+   * Блоб видаляється ПЕРЕД рядком: якщо перше впаде, наступний прогін
+   * спробує знову, а зникнення рядка залишило б файл у сховищі назавжди.
+   */
+  private async removeOrphanUploads(): Promise<number> {
+    const orphans = await this.prisma.item.findMany({
       where: {
         status: ItemStatus.PENDING,
         createdAt: { lt: new Date(Date.now() - ORPHAN_UPLOAD_TTL_MS) },
       },
+      select: { id: true, storageKey: true },
     });
 
-    if (logs.count > 0 || uploads.count > 0) {
-      this.logger.log(
-        `Прибрано ${logs.count} логів і ${uploads.count} незавершених аплоадів`,
-      );
-    }
+    if (orphans.length === 0) return 0;
+
+    await this.storage.remove(
+      orphans
+        .map((row) => row.storageKey)
+        .filter((key): key is string => key !== null),
+    );
+
+    const deleted = await this.prisma.item.deleteMany({
+      where: { id: { in: orphans.map((row) => row.id) } },
+    });
+
+    return deleted.count;
   }
 }

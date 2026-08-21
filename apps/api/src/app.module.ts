@@ -12,6 +12,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { DataRoomsModule } from './modules/data-rooms/data-rooms.module';
 import { ItemsModule } from './modules/items/items.module';
+import { StorageModule } from './modules/storage/storage.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { ItemsModule } from './modules/items/items.module';
     AuthModule,
     DataRoomsModule,
     ItemsModule,
+    StorageModule,
   ],
   providers: [
     CleanupService,

@@ -17,16 +17,10 @@ export class UsersService extends BaseCrudService<Prisma.UserDelegate> {
     return email.trim().toLowerCase();
   }
 
-  findByEmail(email: string): Promise<User | null> {
-    return this.findOne({ where: { email: UsersService.normalizeEmail(email) } });
-  }
-
   async createLocal(input: { email: string; password: string; name: string }): Promise<User> {
     const email = UsersService.normalizeEmail(input.email);
 
-    // Від дубля захищає унікальний індекс на email. Явна перевірка потрібна
-    // лише для того, щоб у типовому випадку користувач бачив зрозуміле
-    // повідомлення, а не помилку БД.
+  const checkEmail = this.findOne({ where: { email: UsersService.normalizeEmail(email) } })
     if (await this.findByEmail(email)) {
       throw new ConflictException('Користувач із таким email уже існує');
     }

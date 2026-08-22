@@ -19,6 +19,11 @@ export default defineConfig({
   ],
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
+    // У монорепо частина пакетів іде з попередньо зібраних deps, частина —
+    // напряму з node_modules, і React опиняється в дереві двічі. Наслідок —
+    // "Invalid hook call" у компонентах бібліотек. dedupe змушує всіх
+    // використовувати один екземпляр.
+    dedupe: ['react', 'react-dom'],
   },
   server: { port: 5173 },
 });

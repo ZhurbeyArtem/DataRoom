@@ -1,4 +1,6 @@
 import { RouterProvider, createRouter } from '@tanstack/react-router';
+import { Toaster } from '@/components/ui/sonner';
+import { useRestoreSession } from '@/features/auth/hooks/use-session';
 import { AppProvider } from './provider';
 import { routeTree } from './routeTree.gen';
 
@@ -10,10 +12,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+/**
+ * Відновлення сесії живе всередині провайдерів: воно робить запит через
+ * той самий http-клієнт, що й решта застосунку.
+ */
+function Session() {
+  useRestoreSession();
+  return <RouterProvider router={router} />;
+}
+
 export function App() {
   return (
     <AppProvider>
-      <RouterProvider router={router} />
+      <Session />
+      <Toaster />
     </AppProvider>
   );
 }

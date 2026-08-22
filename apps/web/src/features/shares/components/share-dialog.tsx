@@ -126,7 +126,7 @@ function PublicLinkSection({ itemId, link }: { itemId: string; link?: Share }) {
             <Button
               variant="ghost"
               size="sm"
-              disabled={revoke.isPending}
+              loading={revoke.isPending}
               onClick={() =>
                 revoke.mutate(link.id, {
                   onSuccess: () => toast.success('Посилання вимкнено'),
@@ -156,7 +156,7 @@ function PublicLinkSection({ itemId, link }: { itemId: string; link?: Share }) {
           </Select>
 
           <Button
-            disabled={create.isPending}
+            loading={create.isPending}
             onClick={() =>
               create.mutate(
                 { type: 'PUBLIC_LINK', expiresAt: expiryToIso(expiry) },
@@ -208,7 +208,12 @@ function GrantsSection({ itemId, grants }: { itemId: string; grants: Share[] }) 
           value={email}
           onChange={(event) => setEmail(event.target.value)}
         />
-        <Button type="submit" variant="outline" disabled={!email.trim() || create.isPending}>
+        <Button
+          type="submit"
+          variant="outline"
+          loading={create.isPending}
+          disabled={!email.trim()}
+        >
           Надати
         </Button>
       </form>

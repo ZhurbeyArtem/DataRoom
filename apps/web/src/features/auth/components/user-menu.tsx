@@ -21,10 +21,10 @@ export function UserMenu() {
         size="icon"
         aria-label="Вийти"
         title="Вийти"
-        disabled={logout.isPending}
+        loading={logout.isPending}
         onClick={() => logout.mutate()}
       >
-        <LogOut className="size-4" />
+        {!logout.isPending && <LogOut className="size-4" />}
       </Button>
     </div>
   );

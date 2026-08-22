@@ -72,7 +72,7 @@ export function CreateRoomDialog({ open, onOpenChange }: NameDialogProps) {
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Скасувати
             </Button>
-            <Button type="submit" disabled={!trimmed || create.isPending}>
+            <Button type="submit" loading={create.isPending} disabled={!trimmed}>
               {create.isPending ? 'Створюємо…' : 'Створити'}
             </Button>
           </DialogFooter>
@@ -128,7 +128,7 @@ export function RenameRoomDialog({
             </Button>
             {/* Заблокована й на порожньому, і на незміненому імені: запит,
                 що нічого не міняє, не має відбуватися. */}
-            <Button type="submit" disabled={!trimmed || unchanged || rename.isPending}>
+            <Button type="submit" loading={rename.isPending} disabled={!trimmed || unchanged}>
               {rename.isPending ? 'Зберігаємо…' : 'Зберегти'}
             </Button>
           </DialogFooter>
@@ -162,7 +162,7 @@ export function DeleteRoomDialog({
         <AlertDialogFooter>
           <AlertDialogCancel>Скасувати</AlertDialogCancel>
           <AlertDialogAction
-            disabled={remove.isPending}
+            loading={remove.isPending}
             onClick={(event) => {
               event.preventDefault();
               if (!room) return;

@@ -2,6 +2,7 @@ import { FolderPlus } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 import { errorMessage } from '@/utils/error-message';
 import type { DataRoom } from '@/types/api';
 import { useDataRooms } from '../hooks/use-data-rooms';
@@ -13,6 +14,8 @@ export function RoomsGrid() {
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<DataRoom | null>(null);
   const [deleting, setDeleting] = useState<DataRoom | null>(null);
+
+  useDocumentTitle('Кімнати');
 
   return (
     <div>

@@ -6,6 +6,7 @@ import { AccessDeniedScreen } from '@/components/access-denied-screen';
 import { Button } from '@/components/ui/button';
 import { paths } from '@/config/paths';
 import { ApiError } from '@/lib/api-client';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 import { errorMessage } from '@/utils/error-message';
 import type { Item } from '@/types/api';
 import type { ShareTarget } from '@/types/share-target';
@@ -97,6 +98,10 @@ export function FolderView({
     setPreviewing(item);
   }
 
+  // У корені кімнати назва папки і назва кімнати збігаються, тому беремо
+  // ту, що вже відома, — інакше заголовок блимав би двічі.
+  useDocumentTitle(itemId ? current.data?.item.name : roomName);
+
   const items = listing.data?.items ?? [];
   const isEmpty = listing.isSuccess && items.length === 0;
 
@@ -125,7 +130,9 @@ export function FolderView({
           shareToken={shareToken}
         />
 
-        <div className="flex items-center gap-2">
+        {/* Переноситься: на 375 px три кнопки в рядок не влазять,
+            і без переносу сторінка їхала б убік. */}
+        <div className="flex flex-wrap items-center gap-2">
           {onShare && rootItemId && !itemId && (
             <Button
               variant="outline"

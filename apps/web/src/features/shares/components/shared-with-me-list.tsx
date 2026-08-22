@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router';
 import { FileText, Folder, Inbox } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { paths } from '@/config/paths';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 import { formatRelative } from '@/utils/format';
 import { useSharedWithMe } from '../hooks/use-shares';
 
@@ -11,6 +12,8 @@ import { useSharedWithMe } from '../hooks/use-shares';
  */
 export function SharedWithMeList() {
   const shared = useSharedWithMe();
+
+  useDocumentTitle('Поділилися зі мною');
 
   return (
     <div>

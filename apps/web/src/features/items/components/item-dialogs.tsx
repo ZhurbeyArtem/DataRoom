@@ -102,7 +102,7 @@ export function CreateFolderDialog({
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Скасувати
             </Button>
-            <Button type="submit" disabled={!trimmed || create.isPending}>
+            <Button type="submit" loading={create.isPending} disabled={!trimmed}>
               {create.isPending ? 'Створюємо…' : 'Створити'}
             </Button>
           </DialogFooter>
@@ -185,7 +185,7 @@ export function RenameItemDialog({
             <Button type="button" variant="ghost" onClick={onOpenChange}>
               Скасувати
             </Button>
-            <Button type="submit" disabled={!trimmed || unchanged || rename.isPending}>
+            <Button type="submit" loading={rename.isPending} disabled={!trimmed || unchanged}>
               {rename.isPending ? 'Зберігаємо…' : 'Зберегти'}
             </Button>
           </DialogFooter>
@@ -258,7 +258,7 @@ export function MoveItemDialog({
           <Button type="button" variant="ghost" onClick={onOpenChange}>
             Скасувати
           </Button>
-          <Button disabled={!target || sameParent || move.isPending} onClick={submit}>
+          <Button loading={move.isPending} disabled={!target || sameParent} onClick={submit}>
             {move.isPending ? 'Переміщуємо…' : 'Перемістити сюди'}
           </Button>
         </DialogFooter>
@@ -302,7 +302,8 @@ export function DeleteItemDialog({
         <AlertDialogFooter>
           <AlertDialogCancel>Скасувати</AlertDialogCancel>
           <AlertDialogAction
-            disabled={waiting || remove.isPending}
+            loading={remove.isPending}
+            disabled={waiting}
             onClick={(event) => {
               event.preventDefault();
               if (!item) return;

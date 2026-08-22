@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 
 interface AuthShellProps {
   title: string;
@@ -9,6 +10,8 @@ interface AuthShellProps {
 
 /** Спільна оболонка входу й реєстрації — щоб дві сторінки не розʼїхались візуально. */
 export function AuthShell({ title, subtitle, children, footer }: AuthShellProps) {
+  useDocumentTitle(title);
+
   return (
     <div className="flex min-h-dvh items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">

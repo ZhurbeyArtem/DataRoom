@@ -60,7 +60,8 @@ export function UploadPanel() {
   );
 }
 
-function UploadRow({ task }: { task: UploadTask }) {
+/** Експортований заради story: чотири стани рядка інакше ніде не побачити. */
+export function UploadRow({ task }: { task: UploadTask }) {
   const cancel = useUploadStore((state) => state.cancel);
   const retry = useUploadStore((state) => state.retry);
 

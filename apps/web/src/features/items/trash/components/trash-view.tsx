@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { paths } from '@/config/paths';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 import { errorMessage } from '@/utils/error-message';
 import { formatBytes, formatRelative } from '@/utils/format';
 import { ItemIcon } from '../../components/item-icon';
@@ -12,6 +13,8 @@ import { useRestoreItem, useTrash } from '../use-trash';
 export function TrashView({ roomId, roomName }: { roomId: string; roomName?: string }) {
   const trash = useTrash(roomId);
   const restore = useRestoreItem(roomId);
+
+  useDocumentTitle(roomName && `Кошик · ${roomName}`);
 
   return (
     <div className="space-y-4">

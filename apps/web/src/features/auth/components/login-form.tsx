@@ -43,7 +43,7 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
       <FormError message={login.isError ? errorMessage(login.error) : null} />
 
       {/* Кнопка блокується на час запиту: подвійний клік не має слати два входи. */}
-      <Button type="submit" className="w-full" disabled={login.isPending}>
+      <Button type="submit" className="w-full" loading={login.isPending}>
         {login.isPending ? 'Входимо…' : 'Увійти'}
       </Button>
 

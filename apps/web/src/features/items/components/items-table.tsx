@@ -55,12 +55,14 @@ export function ItemsTable({
   return (
     // Таблиця скролиться всередині себе, а сторінка ніколи не їде вбік.
     <div className="overflow-x-auto rounded-xl border">
-      <Table className="min-w-[36rem]">
+      {/* На вузькому екрані другорядні колонки сховані, тому мінімальна
+          ширина там не потрібна — і скролу теж немає. */}
+      <Table className="sm:min-w-[36rem]">
         <TableHeader>
           <TableRow>
             <TableHead>Назва</TableHead>
-            <TableHead className="w-28 text-right">Розмір</TableHead>
-            <TableHead className="w-40">Змінено</TableHead>
+            <TableHead className="hidden w-28 text-right sm:table-cell">Розмір</TableHead>
+            <TableHead className="hidden w-40 sm:table-cell">Змінено</TableHead>
             {renderRowActions && <TableHead className="w-12" />}
           </TableRow>
         </TableHeader>
@@ -88,11 +90,11 @@ export function ItemsTable({
                   </button>
                 </TableCell>
 
-                <TableCell className="text-right text-muted-foreground tabular-nums">
+                <TableCell className="hidden text-right text-muted-foreground tabular-nums sm:table-cell">
                   {item.type === 'FOLDER' ? '—' : formatBytes(item.size)}
                 </TableCell>
 
-                <TableCell className="text-muted-foreground">
+                <TableCell className="hidden text-muted-foreground sm:table-cell">
                   {formatRelative(item.updatedAt)}
                 </TableCell>
 
@@ -141,10 +143,10 @@ function LoadingRows({ hasActions }: { hasActions: boolean }) {
               <Skeleton className="h-4 w-48" />
             </div>
           </TableCell>
-          <TableCell>
+          <TableCell className="hidden sm:table-cell">
             <Skeleton className="ml-auto h-4 w-14" />
           </TableCell>
-          <TableCell>
+          <TableCell className="hidden sm:table-cell">
             <Skeleton className="h-4 w-24" />
           </TableCell>
           {hasActions && <TableCell />}

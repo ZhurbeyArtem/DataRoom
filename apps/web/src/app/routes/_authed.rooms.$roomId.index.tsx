@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { buttonVariants } from '@/components/ui/button';
 import { paths } from '@/config/paths';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 import { useDataRooms } from '@/features/data-rooms/hooks/use-data-rooms';
 import { FolderView } from '@/features/items/components/folder-view';
 import { SearchInput } from '@/features/items/search/components/search-input';
@@ -30,6 +31,10 @@ function RoomRootPage() {
   // бачив би кнопки «Нова папка» й «Завантажити», які сервер усе одно відхилив би.
   const isOwner = rooms.isSuccess && room !== undefined;
   const searching = query.trim().length > 0;
+
+  // Поки шукаємо, оглядача папки в дереві немає — заголовок вкладки нікому
+  // ставити, і він падав би до типового «Data Room».
+  useDocumentTitle(searching && room ? `Пошук · ${room.name}` : undefined);
 
   return (
     <>

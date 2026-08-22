@@ -70,7 +70,7 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
 
       <FormError message={register.isError ? errorMessage(register.error) : null} />
 
-      <Button type="submit" className="w-full" disabled={register.isPending || tooShort}>
+      <Button type="submit" className="w-full" loading={register.isPending} disabled={tooShort}>
         {register.isPending ? 'Створюємо…' : 'Створити акаунт'}
       </Button>
 

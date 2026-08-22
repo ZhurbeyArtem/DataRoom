@@ -1,17 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useSessionStore } from '@/features/auth/stores/session.store';
+import { RoomsGrid } from '@/features/data-rooms/components/rooms-grid';
 
-export const Route = createFileRoute('/_authed/')({ component: HomePage });
+export const Route = createFileRoute('/_authed/')({ component: RoomsPage });
 
-function HomePage() {
-  const user = useSessionStore((state) => state.user);
-
-  return (
-    <div>
-      <h1 className="text-2xl font-medium">Вітаємо, {user?.name}</h1>
-      <p className="mt-2 text-muted-foreground">
-        Список кімнат зʼявиться в наступній задачі.
-      </p>
-    </div>
-  );
+function RoomsPage() {
+  return <RoomsGrid />;
 }

@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field, FormError } from './auth-shell';
 import { GoogleSection } from './google-button';
-import { messageOf, useRegister } from '../hooks/use-auth-mutations';
+import { errorMessage } from '@/utils/error-message';
+import { useRegister } from '../hooks/use-auth-mutations';
 
 const MIN_PASSWORD = 8;
 
@@ -67,7 +68,7 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
         )}
       </Field>
 
-      <FormError message={register.isError ? messageOf(register.error) : null} />
+      <FormError message={register.isError ? errorMessage(register.error) : null} />
 
       <Button type="submit" className="w-full" disabled={register.isPending || tooShort}>
         {register.isPending ? 'Створюємо…' : 'Створити акаунт'}

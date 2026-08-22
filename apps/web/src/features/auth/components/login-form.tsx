@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field, FormError } from './auth-shell';
 import { GoogleSection } from './google-button';
-import { messageOf, useLogin } from '../hooks/use-auth-mutations';
+import { errorMessage } from '@/utils/error-message';
+import { useLogin } from '../hooks/use-auth-mutations';
 
 export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   const login = useLogin();
@@ -39,7 +40,7 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
         />
       </Field>
 
-      <FormError message={login.isError ? messageOf(login.error) : null} />
+      <FormError message={login.isError ? errorMessage(login.error) : null} />
 
       {/* Кнопка блокується на час запиту: подвійний клік не має слати два входи. */}
       <Button type="submit" className="w-full" disabled={login.isPending}>

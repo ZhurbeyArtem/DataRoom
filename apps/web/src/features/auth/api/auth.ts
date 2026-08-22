@@ -1,6 +1,9 @@
 import { api } from '@/lib/api-client';
 import type { AuthResult, LoginInput, RegisterInput, SessionUser } from '@/types/api';
 
+// Оновлення сесії тут навмисно немає: воно живе в lib/api-client як
+// refreshSession і має бути єдиним, бо refresh-токен ротується.
+
 export const authApi = {
   register: (body: RegisterInput) =>
     api.post<AuthResult>('/auth/register', body),
@@ -8,8 +11,6 @@ export const authApi = {
   login: (body: LoginInput) =>
     api.post<AuthResult>('/auth/login', body),
 
-  /** Повертає ту саму форму, що login — тому відновлення сесії не потребує окремого ендпоінта. */
-  refresh: () => api.post<AuthResult>('/auth/refresh'),
 
   logout: () => api.post<{ ok: true }>('/auth/logout'),
 

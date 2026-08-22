@@ -7,7 +7,6 @@ import { env } from '@/config/env';
  */
 let accessToken: string | null = null;
 let shareToken: string | null = null;
-let refreshing: Promise<boolean> | null = null;
 
 export function setAccessToken(token: string | null): void {
   accessToken = token;
@@ -66,7 +65,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   // 401 означає, що протух короткий access-токен. Пробуємо оновити його
   // мовчки: refresh лежить у httpOnly-cookie, тож користувач нічого не бачить.
   if (response.status === 401 && !path.startsWith('/auth/')) {
-    if (await tryRefresh()) return unwrap<T>(await send(path, options));
+    if (await refreshSession()) return unwrap<T>(await send(path, options));
     onSessionLost?.();
   }
 
@@ -87,23 +86,35 @@ function send(path: string, options: RequestOptions): Promise<Response> {
   });
 }
 
+interface RefreshedSession {
+  accessToken: string;
+  user: { id: string; email: string; name: string; avatarUrl?: string | null };
+}
+
+let refreshing: Promise<RefreshedSession | null> | null = null;
+
 /**
- * Паралельні 401 не мають запускати кілька оновлень: усі чекають на одне.
- * Інакше перший же екран із чотирма запитами зробив би чотири ротації
- * refresh-токена, і три з них відкликали б одна одну.
+ * Єдина точка оновлення сесії — і для відновлення при старті, і для повтору
+ * після 401.
+ *
+ * Одночасність тут не оптимізація, а вимога коректності: refresh-токен
+ * РОТУЄТЬСЯ, тобто кожне успішне оновлення відкликає попередній токен.
+ * Два паралельні виклики означають, що другий піде вже відкликаним токеном,
+ * отримає 401 — і застосунок вирішить, що сесії немає, хоча перший виклик
+ * щойно її успішно оновив.
  */
-function tryRefresh(): Promise<boolean> {
+export function refreshSession(): Promise<RefreshedSession | null> {
   refreshing ??= fetch(`${env.API_URL}/auth/refresh`, {
     method: 'POST',
     credentials: 'include',
   })
     .then(async (res) => {
-      if (!res.ok) return false;
-      const payload = (await res.json()) as { data: { accessToken: string } };
+      if (!res.ok) return null;
+      const payload = (await res.json()) as { data: RefreshedSession };
       setAccessToken(payload.data.accessToken);
-      return true;
+      return payload.data;
     })
-    .catch(() => false)
+    .catch(() => null)
     .finally(() => {
       refreshing = null;
     });

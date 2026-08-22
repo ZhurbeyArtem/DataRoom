@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
-import { setSessionLostHandler } from '@/lib/api-client';
-import { authApi } from '../api/auth';
+import { refreshSession, setSessionLostHandler } from '@/lib/api-client';
 import { useSessionStore } from '../stores/session.store';
 
 /**
@@ -25,14 +24,13 @@ export function useRestoreSession(): void {
 
     let cancelled = false;
 
-    authApi
-      .refresh()
-      .then((result) => {
-        if (!cancelled) setSession(result.user, result.accessToken);
-      })
-      .catch(() => {
-        if (!cancelled) markAnonymous();
-      });
+    // refreshSession дедуплікований: подвійний виклик ефекту в StrictMode
+    // або кілька вкладок не спричинять двох ротацій refresh-токена.
+    void refreshSession().then((session) => {
+      if (cancelled) return;
+      if (session) setSession(session.user, session.accessToken);
+      else markAnonymous();
+    });
 
     return () => {
       cancelled = true;

@@ -13,7 +13,8 @@ import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AuthedIndexRouteImport } from './routes/_authed.index'
-import { Route as AuthedRoomsRoomIdRouteImport } from './routes/_authed.rooms.$roomId'
+import { Route as AuthedRoomsRoomIdIndexRouteImport } from './routes/_authed.rooms.$roomId.index'
+import { Route as AuthedRoomsRoomIdItemIdRouteImport } from './routes/_authed.rooms.$roomId.$itemId'
 
 const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
@@ -34,9 +35,14 @@ const AuthedIndexRoute = AuthedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedRoomsRoomIdRoute = AuthedRoomsRoomIdRouteImport.update({
-  id: '/rooms/$roomId',
-  path: '/rooms/$roomId',
+const AuthedRoomsRoomIdIndexRoute = AuthedRoomsRoomIdIndexRouteImport.update({
+  id: '/rooms/$roomId/',
+  path: '/rooms/$roomId/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedRoomsRoomIdItemIdRoute = AuthedRoomsRoomIdItemIdRouteImport.update({
+  id: '/rooms/$roomId/$itemId',
+  path: '/rooms/$roomId/$itemId',
   getParentRoute: () => AuthedRoute,
 } as any)
 
@@ -44,13 +50,15 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthedIndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
-  '/rooms/$roomId': typeof AuthedRoomsRoomIdRoute
+  '/rooms/$roomId/$itemId': typeof AuthedRoomsRoomIdItemIdRoute
+  '/rooms/$roomId/': typeof AuthedRoomsRoomIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/': typeof AuthedIndexRoute
-  '/rooms/$roomId': typeof AuthedRoomsRoomIdRoute
+  '/rooms/$roomId/$itemId': typeof AuthedRoomsRoomIdItemIdRoute
+  '/rooms/$roomId': typeof AuthedRoomsRoomIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -58,20 +66,23 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/_authed/': typeof AuthedIndexRoute
-  '/_authed/rooms/$roomId': typeof AuthedRoomsRoomIdRoute
+  '/_authed/rooms/$roomId/$itemId': typeof AuthedRoomsRoomIdItemIdRoute
+  '/_authed/rooms/$roomId/': typeof AuthedRoomsRoomIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/register' | '/rooms/$roomId'
+  fullPaths:
+    '/' | '/login' | '/register' | '/rooms/$roomId/$itemId' | '/rooms/$roomId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/register' | '/' | '/rooms/$roomId'
+  to: '/login' | '/register' | '/' | '/rooms/$roomId/$itemId' | '/rooms/$roomId'
   id:
     | '__root__'
     | '/_authed'
     | '/login'
     | '/register'
     | '/_authed/'
-    | '/_authed/rooms/$roomId'
+    | '/_authed/rooms/$roomId/$itemId'
+    | '/_authed/rooms/$roomId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -110,11 +121,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
-    '/_authed/rooms/$roomId': {
-      id: '/_authed/rooms/$roomId'
+    '/_authed/rooms/$roomId/': {
+      id: '/_authed/rooms/$roomId/'
       path: '/rooms/$roomId'
-      fullPath: '/rooms/$roomId'
-      preLoaderRoute: typeof AuthedRoomsRoomIdRouteImport
+      fullPath: '/rooms/$roomId/'
+      preLoaderRoute: typeof AuthedRoomsRoomIdIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/rooms/$roomId/$itemId': {
+      id: '/_authed/rooms/$roomId/$itemId'
+      path: '/rooms/$roomId/$itemId'
+      fullPath: '/rooms/$roomId/$itemId'
+      preLoaderRoute: typeof AuthedRoomsRoomIdItemIdRouteImport
       parentRoute: typeof AuthedRoute
     }
   }
@@ -122,12 +140,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthedRouteChildren {
   AuthedIndexRoute: typeof AuthedIndexRoute
-  AuthedRoomsRoomIdRoute: typeof AuthedRoomsRoomIdRoute
+  AuthedRoomsRoomIdItemIdRoute: typeof AuthedRoomsRoomIdItemIdRoute
+  AuthedRoomsRoomIdIndexRoute: typeof AuthedRoomsRoomIdIndexRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedIndexRoute: AuthedIndexRoute,
-  AuthedRoomsRoomIdRoute: AuthedRoomsRoomIdRoute,
+  AuthedRoomsRoomIdItemIdRoute: AuthedRoomsRoomIdItemIdRoute,
+  AuthedRoomsRoomIdIndexRoute: AuthedRoomsRoomIdIndexRoute,
 }
 
 const AuthedRouteWithChildren =

@@ -9,6 +9,7 @@ import type { Item } from '@/types/api';
 import { itemsKey, useItem, useItemsList } from '../hooks/use-items';
 import { FolderDropZone, UploadButton } from '../upload/components/folder-drop-zone';
 import { useUploadStore } from '../upload/upload.store';
+import { PdfViewerDialog } from '../viewer/components/pdf-viewer-dialog';
 import { ItemActionsMenu } from './item-actions-menu';
 import { ItemBreadcrumbs } from './item-breadcrumbs';
 import {
@@ -42,6 +43,7 @@ export function FolderView({ roomId, roomName, rootItemId, itemId }: FolderViewP
   const [renaming, setRenaming] = useState<Item | null>(null);
   const [moving, setMoving] = useState<Item | null>(null);
   const [deleting, setDeleting] = useState<Item | null>(null);
+  const [previewing, setPreviewing] = useState<Item | null>(null);
 
   // Лістинг кореня запитувався по кімнаті, тому під цим ключем він і лежить
   // у кеші; для вкладеної папки ключ — її власний id.
@@ -63,8 +65,9 @@ export function FolderView({ roomId, roomName, rootItemId, itemId }: FolderViewP
   function open(item: Item) {
     if (item.type === 'FOLDER') {
       void navigate({ to: paths.folder(roomId, item.id) });
+      return;
     }
-    // Файли відкриватиме переглядач PDF — Задача 17.
+    setPreviewing(item);
   }
 
   const items = listing.data?.items ?? [];
@@ -157,6 +160,7 @@ export function FolderView({ roomId, roomName, rootItemId, itemId }: FolderViewP
         onOpenChange={() => setDeleting(null)}
         scopeId={scopeId}
       />
+      <PdfViewerDialog item={previewing} onOpenChange={() => setPreviewing(null)} />
     </div>
   );
 }

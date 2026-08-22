@@ -19,6 +19,7 @@ import { Route as SharedTokenIndexRouteImport } from './routes/shared.$token.ind
 import { Route as SharedTokenItemIdRouteImport } from './routes/shared.$token.$itemId'
 import { Route as AuthedRoomsRoomIdIndexRouteImport } from './routes/_authed.rooms.$roomId.index'
 import { Route as AuthedRoomsRoomIdItemIdRouteImport } from './routes/_authed.rooms.$roomId.$itemId'
+import { Route as AuthedRoomsRoomIdTrashRouteImport } from './routes/_authed.rooms.$roomId.trash'
 
 const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
@@ -69,6 +70,11 @@ const AuthedRoomsRoomIdItemIdRoute = AuthedRoomsRoomIdItemIdRouteImport.update({
   path: '/rooms/$roomId/$itemId',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedRoomsRoomIdTrashRoute = AuthedRoomsRoomIdTrashRouteImport.update({
+  id: '/rooms/$roomId/trash',
+  path: '/rooms/$roomId/trash',
+  getParentRoute: () => AuthedRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthedIndexRoute
@@ -79,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/shared/$token/$itemId': typeof SharedTokenItemIdRoute
   '/shared/$token/': typeof SharedTokenIndexRoute
   '/rooms/$roomId/$itemId': typeof AuthedRoomsRoomIdItemIdRoute
+  '/rooms/$roomId/trash': typeof AuthedRoomsRoomIdTrashRoute
   '/rooms/$roomId/': typeof AuthedRoomsRoomIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/shared/$token/$itemId': typeof SharedTokenItemIdRoute
   '/shared/$token': typeof SharedTokenIndexRoute
   '/rooms/$roomId/$itemId': typeof AuthedRoomsRoomIdItemIdRoute
+  '/rooms/$roomId/trash': typeof AuthedRoomsRoomIdTrashRoute
   '/rooms/$roomId': typeof AuthedRoomsRoomIdIndexRoute
 }
 export interface FileRoutesById {
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/shared/$token/$itemId': typeof SharedTokenItemIdRoute
   '/shared/$token/': typeof SharedTokenIndexRoute
   '/_authed/rooms/$roomId/$itemId': typeof AuthedRoomsRoomIdItemIdRoute
+  '/_authed/rooms/$roomId/trash': typeof AuthedRoomsRoomIdTrashRoute
   '/_authed/rooms/$roomId/': typeof AuthedRoomsRoomIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/shared/$token/$itemId'
     | '/shared/$token/'
     | '/rooms/$roomId/$itemId'
+    | '/rooms/$roomId/trash'
     | '/rooms/$roomId/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
     | '/shared/$token/$itemId'
     | '/shared/$token'
     | '/rooms/$roomId/$itemId'
+    | '/rooms/$roomId/trash'
     | '/rooms/$roomId'
   id:
     | '__root__'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/shared/$token/$itemId'
     | '/shared/$token/'
     | '/_authed/rooms/$roomId/$itemId'
+    | '/_authed/rooms/$roomId/trash'
     | '/_authed/rooms/$roomId/'
   fileRoutesById: FileRoutesById
 }
@@ -219,6 +231,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedRoomsRoomIdItemIdRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/rooms/$roomId/trash': {
+      id: '/_authed/rooms/$roomId/trash'
+      path: '/rooms/$roomId/trash'
+      fullPath: '/rooms/$roomId/trash'
+      preLoaderRoute: typeof AuthedRoomsRoomIdTrashRouteImport
+      parentRoute: typeof AuthedRoute
+    }
   }
 }
 
@@ -226,6 +245,7 @@ interface AuthedRouteChildren {
   AuthedSharedWithMeRoute: typeof AuthedSharedWithMeRoute
   AuthedIndexRoute: typeof AuthedIndexRoute
   AuthedRoomsRoomIdItemIdRoute: typeof AuthedRoomsRoomIdItemIdRoute
+  AuthedRoomsRoomIdTrashRoute: typeof AuthedRoomsRoomIdTrashRoute
   AuthedRoomsRoomIdIndexRoute: typeof AuthedRoomsRoomIdIndexRoute
 }
 
@@ -233,6 +253,7 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedSharedWithMeRoute: AuthedSharedWithMeRoute,
   AuthedIndexRoute: AuthedIndexRoute,
   AuthedRoomsRoomIdItemIdRoute: AuthedRoomsRoomIdItemIdRoute,
+  AuthedRoomsRoomIdTrashRoute: AuthedRoomsRoomIdTrashRoute,
   AuthedRoomsRoomIdIndexRoute: AuthedRoomsRoomIdIndexRoute,
 }
 

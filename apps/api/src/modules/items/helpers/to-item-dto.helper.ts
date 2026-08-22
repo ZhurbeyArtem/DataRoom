@@ -17,6 +17,7 @@ export function toItemDto(item: Item): ItemDto {
     size: item.size === null ? null : Number(item.size),
     mimeType: item.mimeType,
     status: item.status,
+    deletedAt: item.deletedAt,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   };

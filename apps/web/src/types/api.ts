@@ -18,6 +18,8 @@ export interface Item {
   size: number | null;
   mimeType: string | null;
   status: ItemStatus;
+  /** Заповнено лише в кошику; у звичайному лістингу завжди null. */
+  deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

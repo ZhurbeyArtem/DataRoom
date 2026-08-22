@@ -21,9 +21,17 @@ function AuthedLayout() {
     <div className="min-h-dvh">
       <header className="border-b">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link to={paths.home} className="font-medium tracking-tight">
-            Data Room
-          </Link>
+          <div className="flex items-center gap-5">
+            <Link to={paths.home} className="font-medium tracking-tight">
+              Data Room
+            </Link>
+            <Link
+              to={paths.sharedWithMe}
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              Поділилися зі мною
+            </Link>
+          </div>
           <UserMenu />
         </div>
       </header>

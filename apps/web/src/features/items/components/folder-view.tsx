@@ -1,11 +1,14 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { FolderPlus } from 'lucide-react';
+import { FolderPlus, Share2 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
+import { AccessDeniedScreen } from '@/components/access-denied-screen';
 import { Button } from '@/components/ui/button';
 import { paths } from '@/config/paths';
+import { ApiError } from '@/lib/api-client';
 import { errorMessage } from '@/utils/error-message';
 import type { Item } from '@/types/api';
+import type { ShareTarget } from '@/types/share-target';
 import { itemsKey, useItem, useItemsList } from '../hooks/use-items';
 import { FolderDropZone, UploadButton } from '../upload/components/folder-drop-zone';
 import { useUploadStore } from '../upload/upload.store';
@@ -23,18 +26,37 @@ import { ItemsTable } from './items-table';
 
 interface FolderViewProps {
   roomId: string;
-  roomName: string;
+  /** Не задано — відвідувач не власник кімнати, і її назви він не знає. */
+  roomName?: string;
   /** Коренева папка кімнати — саме вона стає батьком для нових елементів. */
   rootItemId: string | null;
   /** Не задано — показуємо корінь кімнати. */
   itemId?: string;
+  /**
+   * Режим публічного глядача: жодних дій, аплоаду й зони перетягування.
+   * Не приховані стилями — їх просто немає в дереві.
+   */
+  readOnly?: boolean;
+  /** Не задано — кнопки й пункт «Поділитися» не рендеряться. */
+  onShare?: (target: ShareTarget) => void;
+  /** Задано — навігація йде публічними маршрутами за посиланням. */
+  shareToken?: string;
 }
 
 /**
- * Один контейнер обслуговує і корінь кімнати, і будь-яку вкладену папку:
- * різниця лише в тому, чим обмежений лістинг і чи є ланцюжок предків.
+ * Один контейнер обслуговує три випадки: корінь кімнати, вкладену папку
+ * і публічний перегляд за посиланням. Різниця лише в тому, чим обмежений
+ * лістинг і які дії дозволені.
  */
-export function FolderView({ roomId, roomName, rootItemId, itemId }: FolderViewProps) {
+export function FolderView({
+  roomId,
+  roomName,
+  rootItemId,
+  itemId,
+  readOnly = false,
+  onShare,
+  shareToken,
+}: FolderViewProps) {
   const navigate = useNavigate();
   const current = useItem(itemId);
   const listing = useItemsList(itemId ? { parentId: itemId } : { dataRoomId: roomId });
@@ -49,6 +71,7 @@ export function FolderView({ roomId, roomName, rootItemId, itemId }: FolderViewP
   // у кеші; для вкладеної папки ключ — її власний id.
   const scopeId = itemId ?? roomId;
   const parentId = itemId ?? rootItemId;
+  const canEdit = !readOnly && parentId !== null;
 
   const client = useQueryClient();
   const setOnUploaded = useUploadStore((state) => state.setOnUploaded);
@@ -64,7 +87,11 @@ export function FolderView({ roomId, roomName, rootItemId, itemId }: FolderViewP
 
   function open(item: Item) {
     if (item.type === 'FOLDER') {
-      void navigate({ to: paths.folder(roomId, item.id) });
+      void navigate({
+        to: shareToken
+          ? paths.publicFolder(shareToken, item.id)
+          : paths.folder(roomId, item.id),
+      });
       return;
     }
     setPreviewing(item);
@@ -73,6 +100,15 @@ export function FolderView({ roomId, roomName, rootItemId, itemId }: FolderViewP
   const items = listing.data?.items ?? [];
   const isEmpty = listing.isSuccess && items.length === 0;
 
+  // 404 означає і «видалено», і «доступ відкликано» — саме тому екран один.
+  // Завдяки рефетчу при поверненні фокуса він зʼявляється сам, щойно
+  // власник забирає доступ у відкритої вкладки глядача.
+  const denied =
+    (listing.error instanceof ApiError && listing.error.isNotFound) ||
+    (current.error instanceof ApiError && current.error.isNotFound);
+
+  if (denied) return <AccessDeniedScreen />;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -80,23 +116,40 @@ export function FolderView({ roomId, roomName, rootItemId, itemId }: FolderViewP
           roomId={roomId}
           roomName={roomName}
           trail={current.data?.breadcrumbs ?? []}
-          current={itemId ? current.data?.item.name : undefined}
+          // Коли ми стоїмо в корені видимої гілки, його назва вже є першою
+          // крихтою — інакше вона зʼявилася б у ланцюжку двічі поспіль.
+          current={
+            itemId && itemId !== rootItemId ? current.data?.item.name : undefined
+          }
+          readOnly={readOnly}
+          shareToken={shareToken}
         />
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            disabled={parentId === null}
-            onClick={() => setCreating(true)}
-          >
-            <FolderPlus className="size-4" />
-            Нова папка
-          </Button>
-          {parentId && <UploadButton parentId={parentId} scopeId={scopeId} />}
+          {onShare && rootItemId && !itemId && (
+            <Button
+              variant="outline"
+              onClick={() =>
+                onShare({ id: rootItemId, name: roomName ?? 'Кімната', kind: 'room' })
+              }
+            >
+              <Share2 className="size-4" />
+              Поділитися
+            </Button>
+          )}
+          {canEdit && (
+            <>
+              <Button variant="outline" onClick={() => setCreating(true)}>
+                <FolderPlus className="size-4" />
+                Нова папка
+              </Button>
+              <UploadButton parentId={parentId} scopeId={scopeId} />
+            </>
+          )}
         </div>
       </div>
 
-      {listing.isError && (
+      {listing.isError && !denied && (
         <ErrorState
           message={errorMessage(listing.error)}
           onRetry={() => void listing.refetch()}
@@ -106,14 +159,13 @@ export function FolderView({ roomId, roomName, rootItemId, itemId }: FolderViewP
       {/* Зона перетягування накриває і таблицю, і порожній стан: у порожню
           папку файли кидають найчастіше. */}
       {!listing.isError && (
-        <MaybeDropZone parentId={parentId} scopeId={scopeId}>
+        <MaybeDropZone parentId={canEdit ? parentId : null} scopeId={scopeId}>
           {isEmpty ? (
             <ItemsEmptyState
               variant={itemId ? 'empty-folder' : 'empty-room'}
+              readOnly={readOnly}
               action={
-                parentId ? (
-                  <UploadButton parentId={parentId} scopeId={scopeId} />
-                ) : undefined
+                canEdit ? <UploadButton parentId={parentId} scopeId={scopeId} /> : undefined
               }
             />
           ) : (
@@ -124,20 +176,33 @@ export function FolderView({ roomId, roomName, rootItemId, itemId }: FolderViewP
               isFetchingNextPage={listing.isFetchingNextPage}
               onLoadMore={() => void listing.fetchNextPage()}
               onOpen={open}
-              renderRowActions={(item) => (
-                <ItemActionsMenu
-                  item={item}
-                  onRename={setRenaming}
-                  onMove={setMoving}
-                  onDelete={setDeleting}
-                />
-              )}
+              renderRowActions={
+                readOnly
+                  ? undefined
+                  : (item) => (
+                      <ItemActionsMenu
+                        item={item}
+                        onRename={setRenaming}
+                        onMove={setMoving}
+                        onDelete={setDeleting}
+                        onShare={
+                          onShare &&
+                          ((target) =>
+                            onShare({
+                              id: target.id,
+                              name: target.name,
+                              kind: target.type === 'FOLDER' ? 'folder' : 'file',
+                            }))
+                        }
+                      />
+                    )
+              }
             />
           )}
         </MaybeDropZone>
       )}
 
-      {parentId && (
+      {canEdit && (
         <CreateFolderDialog
           open={creating}
           onOpenChange={setCreating}
@@ -166,8 +231,8 @@ export function FolderView({ roomId, roomName, rootItemId, itemId }: FolderViewP
 }
 
 /**
- * Поки кімната ще не завантажилась, реальної папки-батька немає — тоді
- * вміст показуємо без зони перетягування, а не ховаємо його зовсім.
+ * Поки кімната ще не завантажилась або ми в режимі читання, реальної
+ * папки-батька немає — тоді вміст показуємо без зони перетягування.
  */
 function MaybeDropZone({
   parentId,

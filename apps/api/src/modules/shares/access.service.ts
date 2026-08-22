@@ -24,13 +24,14 @@ export class AccessService {
     if (!item) throw new NotFoundException('Елемент не знайдено');
 
     if (principal.userId && item.dataRoom.ownerId === principal.userId) {
-      return { item, role: 'OWNER' };
+      // Власник бачить усе аж до кореня: перший елемент шляху або він сам.
+      return { item, role: 'OWNER', scopeItemId: item.path[0] ?? item.id };
     }
 
     const share = await this.findLiveShare(item, principal);
     if (!share) throw new NotFoundException('Елемент не знайдено');
 
-    return { item, role: 'VIEWER' };
+    return { item, role: 'VIEWER', scopeItemId: share.itemId };
   }
 
   /** Доступ до кімнати — це доступ до її кореневої папки. */

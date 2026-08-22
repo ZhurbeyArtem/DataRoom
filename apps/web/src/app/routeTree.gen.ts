@@ -13,6 +13,10 @@ import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AuthedIndexRouteImport } from './routes/_authed.index'
+import { Route as AuthedSharedWithMeRouteImport } from './routes/_authed.shared-with-me'
+import { Route as SharedTokenRouteImport } from './routes/shared.$token'
+import { Route as SharedTokenIndexRouteImport } from './routes/shared.$token.index'
+import { Route as SharedTokenItemIdRouteImport } from './routes/shared.$token.$itemId'
 import { Route as AuthedRoomsRoomIdIndexRouteImport } from './routes/_authed.rooms.$roomId.index'
 import { Route as AuthedRoomsRoomIdItemIdRouteImport } from './routes/_authed.rooms.$roomId.$itemId'
 
@@ -35,6 +39,26 @@ const AuthedIndexRoute = AuthedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedSharedWithMeRoute = AuthedSharedWithMeRouteImport.update({
+  id: '/shared-with-me',
+  path: '/shared-with-me',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const SharedTokenRoute = SharedTokenRouteImport.update({
+  id: '/shared/$token',
+  path: '/shared/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SharedTokenIndexRoute = SharedTokenIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SharedTokenRoute,
+} as any)
+const SharedTokenItemIdRoute = SharedTokenItemIdRouteImport.update({
+  id: '/$itemId',
+  path: '/$itemId',
+  getParentRoute: () => SharedTokenRoute,
+} as any)
 const AuthedRoomsRoomIdIndexRoute = AuthedRoomsRoomIdIndexRouteImport.update({
   id: '/rooms/$roomId/',
   path: '/rooms/$roomId/',
@@ -50,13 +74,20 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthedIndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/shared-with-me': typeof AuthedSharedWithMeRoute
+  '/shared/$token': typeof SharedTokenRouteWithChildren
+  '/shared/$token/$itemId': typeof SharedTokenItemIdRoute
+  '/shared/$token/': typeof SharedTokenIndexRoute
   '/rooms/$roomId/$itemId': typeof AuthedRoomsRoomIdItemIdRoute
   '/rooms/$roomId/': typeof AuthedRoomsRoomIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/shared-with-me': typeof AuthedSharedWithMeRoute
   '/': typeof AuthedIndexRoute
+  '/shared/$token/$itemId': typeof SharedTokenItemIdRoute
+  '/shared/$token': typeof SharedTokenIndexRoute
   '/rooms/$roomId/$itemId': typeof AuthedRoomsRoomIdItemIdRoute
   '/rooms/$roomId': typeof AuthedRoomsRoomIdIndexRoute
 }
@@ -65,22 +96,46 @@ export interface FileRoutesById {
   '/_authed': typeof AuthedRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/_authed/shared-with-me': typeof AuthedSharedWithMeRoute
+  '/shared/$token': typeof SharedTokenRouteWithChildren
   '/_authed/': typeof AuthedIndexRoute
+  '/shared/$token/$itemId': typeof SharedTokenItemIdRoute
+  '/shared/$token/': typeof SharedTokenIndexRoute
   '/_authed/rooms/$roomId/$itemId': typeof AuthedRoomsRoomIdItemIdRoute
   '/_authed/rooms/$roomId/': typeof AuthedRoomsRoomIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/login' | '/register' | '/rooms/$roomId/$itemId' | '/rooms/$roomId/'
+    | '/'
+    | '/login'
+    | '/register'
+    | '/shared-with-me'
+    | '/shared/$token'
+    | '/shared/$token/$itemId'
+    | '/shared/$token/'
+    | '/rooms/$roomId/$itemId'
+    | '/rooms/$roomId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/register' | '/' | '/rooms/$roomId/$itemId' | '/rooms/$roomId'
+  to:
+    | '/login'
+    | '/register'
+    | '/shared-with-me'
+    | '/'
+    | '/shared/$token/$itemId'
+    | '/shared/$token'
+    | '/rooms/$roomId/$itemId'
+    | '/rooms/$roomId'
   id:
     | '__root__'
     | '/_authed'
     | '/login'
     | '/register'
+    | '/_authed/shared-with-me'
+    | '/shared/$token'
     | '/_authed/'
+    | '/shared/$token/$itemId'
+    | '/shared/$token/'
     | '/_authed/rooms/$roomId/$itemId'
     | '/_authed/rooms/$roomId/'
   fileRoutesById: FileRoutesById
@@ -89,6 +144,7 @@ export interface RootRouteChildren {
   AuthedRoute: typeof AuthedRouteWithChildren
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
+  SharedTokenRoute: typeof SharedTokenRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -121,6 +177,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/shared-with-me': {
+      id: '/_authed/shared-with-me'
+      path: '/shared-with-me'
+      fullPath: '/shared-with-me'
+      preLoaderRoute: typeof AuthedSharedWithMeRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/shared/$token': {
+      id: '/shared/$token'
+      path: '/shared/$token'
+      fullPath: '/shared/$token'
+      preLoaderRoute: typeof SharedTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shared/$token/': {
+      id: '/shared/$token/'
+      path: '/'
+      fullPath: '/shared/$token/'
+      preLoaderRoute: typeof SharedTokenIndexRouteImport
+      parentRoute: typeof SharedTokenRoute
+    }
+    '/shared/$token/$itemId': {
+      id: '/shared/$token/$itemId'
+      path: '/$itemId'
+      fullPath: '/shared/$token/$itemId'
+      preLoaderRoute: typeof SharedTokenItemIdRouteImport
+      parentRoute: typeof SharedTokenRoute
+    }
     '/_authed/rooms/$roomId/': {
       id: '/_authed/rooms/$roomId/'
       path: '/rooms/$roomId'
@@ -139,12 +223,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthedRouteChildren {
+  AuthedSharedWithMeRoute: typeof AuthedSharedWithMeRoute
   AuthedIndexRoute: typeof AuthedIndexRoute
   AuthedRoomsRoomIdItemIdRoute: typeof AuthedRoomsRoomIdItemIdRoute
   AuthedRoomsRoomIdIndexRoute: typeof AuthedRoomsRoomIdIndexRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
+  AuthedSharedWithMeRoute: AuthedSharedWithMeRoute,
   AuthedIndexRoute: AuthedIndexRoute,
   AuthedRoomsRoomIdItemIdRoute: AuthedRoomsRoomIdItemIdRoute,
   AuthedRoomsRoomIdIndexRoute: AuthedRoomsRoomIdIndexRoute,
@@ -153,10 +239,25 @@ const AuthedRouteChildren: AuthedRouteChildren = {
 const AuthedRouteWithChildren =
   AuthedRoute._addFileChildren(AuthedRouteChildren)
 
+interface SharedTokenRouteChildren {
+  SharedTokenItemIdRoute: typeof SharedTokenItemIdRoute
+  SharedTokenIndexRoute: typeof SharedTokenIndexRoute
+}
+
+const SharedTokenRouteChildren: SharedTokenRouteChildren = {
+  SharedTokenItemIdRoute: SharedTokenItemIdRoute,
+  SharedTokenIndexRoute: SharedTokenIndexRoute,
+}
+
+const SharedTokenRouteWithChildren = SharedTokenRoute._addFileChildren(
+  SharedTokenRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   AuthedRoute: AuthedRouteWithChildren,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
+  SharedTokenRoute: SharedTokenRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

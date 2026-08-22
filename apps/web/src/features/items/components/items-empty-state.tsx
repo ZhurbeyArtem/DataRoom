@@ -28,11 +28,17 @@ const VARIANTS: Record<EmptyVariant, { icon: ReactNode; title: string; hint: str
 export function ItemsEmptyState({
   variant,
   action,
+  readOnly,
 }: {
   variant: EmptyVariant;
   action?: ReactNode;
+  readOnly?: boolean;
 }) {
   const { icon, title, hint } = VARIANTS[variant];
+
+  // Глядачеві не пропонуємо створювати папки: він цього не може, і підказка
+  // читалася б як зламана кнопка, якої немає.
+  const text = readOnly ? 'Тут поки нічого немає' : hint;
 
   return (
     <div className="flex flex-col items-center rounded-xl border border-dashed py-16 text-center">
@@ -40,7 +46,7 @@ export function ItemsEmptyState({
         {icon}
       </div>
       <h2 className="mt-4 font-medium">{title}</h2>
-      <p className="mt-1 max-w-sm text-sm text-muted-foreground">{hint}</p>
+      <p className="mt-1 max-w-sm text-sm text-muted-foreground">{text}</p>
       {action && <div className="mt-5">{action}</div>}
     </div>
   );

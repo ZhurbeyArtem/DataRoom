@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { BaseCrudService } from '../../common/crud/base-crud.service';
 import { Prisma, Share, ShareType } from '../../common/prisma/client';
@@ -6,7 +6,11 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { toItemDto } from '../items/helpers/to-item-dto.helper';
 import { UsersService } from '../users/users.service';
 import { CreateShareDto } from './dto/create-share.dto';
-import type { ShareDto, SharedWithMeEntry } from './interfaces/share.interface';
+import type {
+  ShareDto,
+  SharedWithMeEntry,
+  ShareTargetDto,
+} from './interfaces/share.interface';
 
 @Injectable()
 export class SharesService extends BaseCrudService<Prisma.ShareDelegate> {
@@ -42,6 +46,32 @@ export class SharesService extends BaseCrudService<Prisma.ShareDelegate> {
     });
 
     return toShareDto(share);
+  }
+
+  /**
+   * Глядач за посиланням має лише токен: ні id елемента, ні id кімнати.
+   * Без цього він не може навіть попросити лістинг, бо той вимагає
+   * parentId або dataRoomId.
+   */
+  async resolveByToken(token: string): Promise<ShareTargetDto> {
+    const now = new Date();
+
+    const share = await this.prisma.share.findFirst({
+      where: {
+        type: ShareType.PUBLIC_LINK,
+        token,
+        revokedAt: null,
+        item: { deletedAt: null },
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+      include: { item: true },
+    });
+
+    // Те саме 404, що й скрізь: відкликане, протерміноване й неіснуюче
+    // посилання мають бути нерозрізненними.
+    if (!share) throw new NotFoundException('Посилання недійсне');
+
+    return { item: toItemDto(share.item), dataRoomId: share.item.dataRoomId };
   }
 
   async listForItem(itemId: string): Promise<ShareDto[]> {

@@ -15,3 +15,9 @@ export interface ShareDto {
 export interface SharedWithMeEntry extends ShareDto {
   item: ItemDto;
 }
+
+/** Те, що бачить глядач за посиланням: сам елемент і кімната, у якій він лежить. */
+export interface ShareTargetDto {
+  item: ItemDto;
+  dataRoomId: string;
+}

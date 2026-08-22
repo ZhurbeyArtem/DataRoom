@@ -66,7 +66,10 @@ export class ItemsService extends BaseCrudService<Prisma.ItemDelegate> {
    * цього шлях і зберігається матеріалізованим. Прохід угору по parentId
    * коштував би стільки ж запитів, скільки рівнів вкладеності.
    */
-  async getWithBreadcrumbs(item: Item): Promise<{
+  async getWithBreadcrumbs(
+    item: Item,
+    scopeItemId: string,
+  ): Promise<{
     item: ItemDto;
     breadcrumbs: Breadcrumb[];
   }> {
@@ -81,7 +84,14 @@ export class ItemsService extends BaseCrudService<Prisma.ItemDelegate> {
     // findMany з `in` не гарантує порядку, тому ланцюжок перебудовується
     // за path — інакше breadcrumbs показували б предків навмання.
     const byId = new Map(ancestors.map((row) => [row.id, row]));
-    const breadcrumbs = item.path
+
+    // Обрізаємо все, що вище дозволеної межі. Глядач, якому поділилися
+    // вкладеною папкою, не має бачити навіть назв папок над нею — інакше
+    // ланцюжок предків розкриває структуру чужої кімнати.
+    const from = item.path.indexOf(scopeItemId);
+    const visiblePath = from === -1 ? [] : item.path.slice(from);
+
+    const breadcrumbs = visiblePath
       .map((id) => byId.get(id))
       .filter((crumb): crumb is Breadcrumb => crumb !== undefined);
 

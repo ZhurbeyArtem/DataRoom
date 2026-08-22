@@ -95,7 +95,7 @@ export class ItemsController {
     item: ItemDto;
     breadcrumbs: Breadcrumb[];
   }> {
-    return this.items.getWithBreadcrumbs(access.item);
+    return this.items.getWithBreadcrumbs(access.item, access.scopeItemId);
   }
 
   @Get(':id/stats')

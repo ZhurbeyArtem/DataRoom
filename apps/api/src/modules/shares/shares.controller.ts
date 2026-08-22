@@ -3,19 +3,25 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
+  NotFoundException,
   Param,
   ParseUUIDPipe,
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthUser } from '../auth/interfaces/jwt-payload.interface';
 import { CreateShareDto } from './dto/create-share.dto';
 import { RequireRole } from './decorators/require-role.decorator';
 import { AccessGuard } from './guards/access.guard';
-import type { ShareDto, SharedWithMeEntry } from './interfaces/share.interface';
+import type {
+  ShareDto,
+  SharedWithMeEntry,
+  ShareTargetDto,
+} from './interfaces/share.interface';
 import { SharesService } from './shares.service';
 
 @ApiTags('shares')
@@ -23,6 +29,16 @@ import { SharesService } from './shares.service';
 @Controller()
 export class SharesController {
   constructor(private readonly shares: SharesService) {}
+
+  // Єдиний маршрут, що працює лише за токеном і без жодної авторизації:
+  // глядач за посиланням має спершу дізнатися, ЩО саме йому відкрили.
+  @Get('shares/target')
+  @ApiSecurity('share-token')
+  @ApiOperation({ summary: 'Елемент, на який видано публічне посилання' })
+  target(@Headers('x-share-token') token?: string): Promise<ShareTargetDto> {
+    if (!token) throw new NotFoundException('Посилання недійсне');
+    return this.shares.resolveByToken(token);
+  }
 
   @Post('items/:id/shares')
   @UseGuards(JwtAuthGuard, AccessGuard)

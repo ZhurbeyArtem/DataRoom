@@ -72,6 +72,11 @@ export interface SharedWithMeEntry extends Share {
   item: Item;
 }
 
+export interface ShareTargetResponse {
+  item: Item;
+  dataRoomId: string;
+}
+
 export interface UploadTicket {
   itemId: string;
   storageKey: string;

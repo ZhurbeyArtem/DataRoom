@@ -1,4 +1,4 @@
-import { FolderInput, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { FolderInput, MoreHorizontal, Pencil, Share2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -13,9 +13,17 @@ interface ItemActionsMenuProps {
   onRename: (item: Item) => void;
   onMove: (item: Item) => void;
   onDelete: (item: Item) => void;
+  /** Не задано — пункт «Поділитися» не рендериться взагалі. */
+  onShare?: (item: Item) => void;
 }
 
-export function ItemActionsMenu({ item, onRename, onMove, onDelete }: ItemActionsMenuProps) {
+export function ItemActionsMenu({
+  item,
+  onRename,
+  onMove,
+  onDelete,
+  onShare,
+}: ItemActionsMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -33,6 +41,12 @@ export function ItemActionsMenu({ item, onRename, onMove, onDelete }: ItemAction
           <FolderInput className="size-4" />
           Перемістити
         </DropdownMenuItem>
+        {onShare && (
+          <DropdownMenuItem onClick={() => onShare(item)}>
+            <Share2 className="size-4" />
+            Поділитися
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem variant="destructive" onClick={() => onDelete(item)}>
           <Trash2 className="size-4" />
           Видалити

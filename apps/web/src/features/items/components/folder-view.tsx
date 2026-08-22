@@ -1,11 +1,14 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { FolderPlus } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { paths } from '@/config/paths';
 import { errorMessage } from '@/utils/error-message';
 import type { Item } from '@/types/api';
-import { useItem, useItemsList } from '../hooks/use-items';
+import { itemsKey, useItem, useItemsList } from '../hooks/use-items';
+import { FolderDropZone, UploadButton } from '../upload/components/folder-drop-zone';
+import { useUploadStore } from '../upload/upload.store';
 import { ItemActionsMenu } from './item-actions-menu';
 import { ItemBreadcrumbs } from './item-breadcrumbs';
 import {
@@ -45,6 +48,18 @@ export function FolderView({ roomId, roomName, rootItemId, itemId }: FolderViewP
   const scopeId = itemId ?? roomId;
   const parentId = itemId ?? rootItemId;
 
+  const client = useQueryClient();
+  const setOnUploaded = useUploadStore((state) => state.setOnUploaded);
+
+  // Черга аплоаду живе поза React-деревом, тому оновлення лістингу після
+  // кожного підтвердженого файлу вішається сюди: файли зʼявляються в таблиці
+  // по одному, а не всі наприкінці.
+  useEffect(() => {
+    setOnUploaded((finishedScopeId) => {
+      void client.invalidateQueries({ queryKey: itemsKey(finishedScopeId) });
+    });
+  }, [client, setOnUploaded]);
+
   function open(item: Item) {
     if (item.type === 'FOLDER') {
       void navigate({ to: paths.folder(roomId, item.id) });
@@ -65,14 +80,17 @@ export function FolderView({ roomId, roomName, rootItemId, itemId }: FolderViewP
           current={itemId ? current.data?.item.name : undefined}
         />
 
-        <Button
-          variant="outline"
-          disabled={parentId === null}
-          onClick={() => setCreating(true)}
-        >
-          <FolderPlus className="size-4" />
-          Нова папка
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            disabled={parentId === null}
+            onClick={() => setCreating(true)}
+          >
+            <FolderPlus className="size-4" />
+            Нова папка
+          </Button>
+          {parentId && <UploadButton parentId={parentId} scopeId={scopeId} />}
+        </div>
       </div>
 
       {listing.isError && (
@@ -82,35 +100,38 @@ export function FolderView({ roomId, roomName, rootItemId, itemId }: FolderViewP
         />
       )}
 
-      {isEmpty && (
-        <ItemsEmptyState
-          variant={itemId ? 'empty-folder' : 'empty-room'}
-          action={
-            <Button disabled={parentId === null} onClick={() => setCreating(true)}>
-              <FolderPlus className="size-4" />
-              Створити папку
-            </Button>
-          }
-        />
-      )}
-
-      {!listing.isError && !isEmpty && (
-        <ItemsTable
-          items={items}
-          isLoading={listing.isPending}
-          hasNextPage={listing.hasNextPage}
-          isFetchingNextPage={listing.isFetchingNextPage}
-          onLoadMore={() => void listing.fetchNextPage()}
-          onOpen={open}
-          renderRowActions={(item) => (
-            <ItemActionsMenu
-              item={item}
-              onRename={setRenaming}
-              onMove={setMoving}
-              onDelete={setDeleting}
+      {/* Зона перетягування накриває і таблицю, і порожній стан: у порожню
+          папку файли кидають найчастіше. */}
+      {!listing.isError && (
+        <MaybeDropZone parentId={parentId} scopeId={scopeId}>
+          {isEmpty ? (
+            <ItemsEmptyState
+              variant={itemId ? 'empty-folder' : 'empty-room'}
+              action={
+                parentId ? (
+                  <UploadButton parentId={parentId} scopeId={scopeId} />
+                ) : undefined
+              }
+            />
+          ) : (
+            <ItemsTable
+              items={items}
+              isLoading={listing.isPending}
+              hasNextPage={listing.hasNextPage}
+              isFetchingNextPage={listing.isFetchingNextPage}
+              onLoadMore={() => void listing.fetchNextPage()}
+              onOpen={open}
+              renderRowActions={(item) => (
+                <ItemActionsMenu
+                  item={item}
+                  onRename={setRenaming}
+                  onMove={setMoving}
+                  onDelete={setDeleting}
+                />
+              )}
             />
           )}
-        />
+        </MaybeDropZone>
       )}
 
       {parentId && (
@@ -137,6 +158,28 @@ export function FolderView({ roomId, roomName, rootItemId, itemId }: FolderViewP
         scopeId={scopeId}
       />
     </div>
+  );
+}
+
+/**
+ * Поки кімната ще не завантажилась, реальної папки-батька немає — тоді
+ * вміст показуємо без зони перетягування, а не ховаємо його зовсім.
+ */
+function MaybeDropZone({
+  parentId,
+  scopeId,
+  children,
+}: {
+  parentId: string | null;
+  scopeId: string;
+  children: ReactNode;
+}) {
+  if (!parentId) return <>{children}</>;
+
+  return (
+    <FolderDropZone parentId={parentId} scopeId={scopeId}>
+      {children}
+    </FolderDropZone>
   );
 }
 

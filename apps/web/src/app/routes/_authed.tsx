@@ -3,6 +3,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { paths } from '@/config/paths';
 import { UserMenu } from '@/features/auth/components/user-menu';
 import { useSessionStore } from '@/features/auth/stores/session.store';
+import { UploadPanel } from '@/features/items/upload/components/upload-panel';
 
 export const Route = createFileRoute('/_authed')({ component: AuthedLayout });
 
@@ -30,6 +31,10 @@ function AuthedLayout() {
       <main className="mx-auto max-w-6xl px-4 py-8">
         <Outlet />
       </main>
+
+      {/* Панель у макеті, а не в папці: аплоад має продовжуватись,
+          коли користувач перейшов в іншу папку чи кімнату. */}
+      <UploadPanel />
     </div>
   );
 }

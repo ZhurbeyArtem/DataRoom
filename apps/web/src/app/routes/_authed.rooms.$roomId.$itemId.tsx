@@ -11,5 +11,12 @@ function FolderPage() {
   const rooms = useDataRooms();
   const room = rooms.data?.find((candidate) => candidate.id === roomId);
 
-  return <FolderView roomId={roomId} roomName={room?.name ?? 'Кімната'} itemId={itemId} />;
+  return (
+    <FolderView
+      roomId={roomId}
+      roomName={room?.name ?? 'Кімната'}
+      rootItemId={room?.rootItemId ?? null}
+      itemId={itemId}
+    />
+  );
 }

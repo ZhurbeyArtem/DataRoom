@@ -20,6 +20,6 @@ export class CreateUploadUrlDto {
   @ApiProperty({ maximum: MAX_FILE_BYTES })
   @IsInt()
   @Min(1)
-  @Max(MAX_FILE_BYTES, { message: 'Файл завеликий: максимум 50 МБ' })
+  @Max(MAX_FILE_BYTES, { message: 'File is too large: 50 MB maximum' })
   size!: number;
 }

@@ -1,6 +1,6 @@
 /**
- * Єдине місце, яке знає, куди Prisma 7 генерує клієнт.
- * Решта коду імпортує моделі та енуми звідси, тому зміна шляху генерації
- * зачіпає один файл, а не весь застосунок.
+ * The single place that knows where Prisma 7 generates its client.
+ * Everything else imports models and enums from here, so changing the
+ * generation path touches one file instead of the whole application.
  */
 export * from '../../generated/prisma/client';

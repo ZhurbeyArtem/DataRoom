@@ -12,16 +12,16 @@ export class UsersService extends BaseCrudService<Prisma.UserDelegate> {
     super(prisma.user);
   }
 
-  /** Email завжди зберігається в нижньому регістрі — це замінює citext. */
+  /** Emails are always stored lowercased — this stands in for citext. */
   static normalizeEmail(email: string): string {
     return email.trim().toLowerCase();
   }
 
   /**
-   * Нормалізація захована тут, тому виклики ззовні не мусять про неї пам'ятати.
-   * Якби кожен викликав findOne самостійно, достатньо було б один раз забути
-   * normalizeEmail — і вхід перестав би знаходити користувача, що ввів email
-   * з великої літери.
+   * Normalisation is hidden here so callers don't have to remember it.
+   * If everyone called findOne directly, forgetting normalizeEmail once would
+   * be enough for sign-in to stop finding a user who typed their email
+   * capitalised.
    */
   findByEmail(email: string): Promise<User | null> {
     return this.findOne({ where: { email: UsersService.normalizeEmail(email) } });
@@ -30,11 +30,11 @@ export class UsersService extends BaseCrudService<Prisma.UserDelegate> {
   async createLocal(input: { email: string; password: string; name: string }): Promise<User> {
     const email = UsersService.normalizeEmail(input.email);
 
-    // Від дубля захищає унікальний індекс на email. Явна перевірка потрібна
-    // лише для того, щоб у типовому випадку користувач бачив зрозуміле
-    // повідомлення, а не помилку БД.
+    // The unique index on email is what actually prevents duplicates. This
+    // explicit check exists only so that in the common case the user sees a
+    // readable message instead of a database error.
     if (await this.findByEmail(email)) {
-      throw new ConflictException('Користувач із таким email уже існує');
+      throw new ConflictException('A user with this email already exists');
     }
 
     return this.create({

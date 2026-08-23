@@ -8,8 +8,9 @@ export class RequestContextMiddleware implements NestMiddleware {
   use(_req: Request, res: Response, next: NextFunction): void {
     const requestId = randomUUID();
 
-    // Той самий ідентифікатор бачить клієнт у заголовку, отримує тіло помилки
-    // і зберігає таблиця Log — за ним скарга користувача зводиться до стеку.
+    // The client sees this same id in the header, gets it in the error body,
+    // and the Log table stores it — that is what turns a user complaint into
+    // a concrete stack trace.
     res.setHeader('X-Request-Id', requestId);
 
     RequestContext.run({ requestId }, () => next());

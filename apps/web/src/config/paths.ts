@@ -1,6 +1,6 @@
 /**
- * Усі маршрути в одному місці: перейменування сторінки не змушує шукати
- * рядки по всьому проєкту.
+ * Every route in one place: renaming a page does not turn into a hunt for
+ * string literals across the project.
  */
 export const paths = {
   home: '/',

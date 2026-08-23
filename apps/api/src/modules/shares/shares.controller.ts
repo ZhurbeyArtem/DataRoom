@@ -30,20 +30,20 @@ import { SharesService } from './shares.service';
 export class SharesController {
   constructor(private readonly shares: SharesService) {}
 
-  // Єдиний маршрут, що працює лише за токеном і без жодної авторизації:
-  // глядач за посиланням має спершу дізнатися, ЩО саме йому відкрили.
+  // The only route that works on a token alone with no authorisation: a
+  // link visitor first has to learn WHAT exactly was opened to them.
   @Get('shares/target')
   @ApiSecurity('share-token')
-  @ApiOperation({ summary: 'Елемент, на який видано публічне посилання' })
+  @ApiOperation({ summary: 'The item a public link points at' })
   target(@Headers('x-share-token') token?: string): Promise<ShareTargetDto> {
-    if (!token) throw new NotFoundException('Посилання недійсне');
+    if (!token) throw new NotFoundException('This link is not valid');
     return this.shares.resolveByToken(token);
   }
 
   @Post('items/:id/shares')
   @UseGuards(JwtAuthGuard, AccessGuard)
   @RequireRole('OWNER')
-  @ApiOperation({ summary: 'Поділитися: публічне посилання або поіменний доступ' })
+  @ApiOperation({ summary: 'Share: a public link or a named grant' })
   create(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
@@ -55,14 +55,14 @@ export class SharesController {
   @Get('items/:id/shares')
   @UseGuards(JwtAuthGuard, AccessGuard)
   @RequireRole('OWNER')
-  @ApiOperation({ summary: 'Активні доступи до елемента' })
+  @ApiOperation({ summary: 'Active shares of an item' })
   list(@Param('id', ParseUUIDPipe) id: string): Promise<ShareDto[]> {
     return this.shares.listForItem(id);
   }
 
   @Delete('shares/:id')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Відкликати доступ' })
+  @ApiOperation({ summary: 'Revoke a share' })
   revoke(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
@@ -70,11 +70,12 @@ export class SharesController {
     return this.shares.revoke(id, user.id);
   }
 
-  // Окремий шлях, а не /data-rooms/shared-with-me: інакше він конфліктував би
-  // з GET /data-rooms/:id і працював би лише за вдалого порядку реєстрації.
+  // A separate path rather than /data-rooms/shared-with-me: otherwise it
+  // would clash with GET /data-rooms/:id and only work if the routes happened
+  // to be registered in the right order.
   @Get('shares/with-me')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Те, до чого мені надали доступ поіменно' })
+  @ApiOperation({ summary: 'What has been shared with me by name' })
   sharedWithMe(@CurrentUser() user: AuthUser): Promise<SharedWithMeEntry[]> {
     return this.shares.listSharedWithMe(user.email);
   }

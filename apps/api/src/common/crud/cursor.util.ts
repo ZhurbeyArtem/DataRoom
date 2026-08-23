@@ -1,10 +1,10 @@
 /**
- * Поле, за яким іде впорядкування й будується курсор.
+ * A field the listing is ordered by and the cursor is built from.
  *
- * `order` заповнюється лише для enum-полів: Prisma не підтримує gt/lt для
- * enum (у EnumFilter є тільки equals, in, notIn, not), тому «строго після»
- * для них виражається через `in` із перелiком значень, що йдуть далі
- * в оголошеному порядку.
+ * `order` is filled in for enum fields only: Prisma has no gt/lt for enums
+ * (EnumFilter offers just equals, in, notIn, not), so "strictly after" is
+ * expressed through `in` with the values that come later in the declared
+ * order.
  */
 export interface KeysetField {
   field: string;
@@ -29,10 +29,10 @@ export function decodeCursor(raw: string): CursorField[] {
   }
 }
 
-/** Значення enum, що йдуть строго після заданого в оголошеному порядку. */
+/** Enum values that come strictly after the given one in declared order. */
 function valuesAfter(order: readonly string[], value: string): string[] {
   const index = order.indexOf(value);
-  // Невідоме значення — краще не повернути нічого, ніж повернути все.
+  // Unknown value — better to return nothing than to return everything.
   return index === -1 ? [] : [...order.slice(index + 1)];
 }
 
@@ -43,12 +43,12 @@ function strictlyAfter(field: CursorField): Record<string, unknown> {
 }
 
 /**
- * Keyset-предикат для впорядкованого набору полів.
- * Для [type, name, id] дає:
- *   type "після" c.type
+ * Keyset predicate for an ordered set of fields.
+ * For [type, name, id] it yields:
+ *   type "after" c.type
  *   OR (type = c.type AND name > c.name)
  *   OR (type = c.type AND name = c.name AND id > c.id)
- * Тобто "усе, що йде строго після цього рядка" у тому ж порядку сортування.
+ * That is, "everything strictly after this row" in the same sort order.
  */
 export function keysetWhere(fields: CursorField[]): Record<string, unknown> {
   return {
@@ -64,8 +64,8 @@ export function keysetWhere(fields: CursorField[]): Record<string, unknown> {
 }
 
 /**
- * Відрізає службовий "зайвий" рядок і збирає курсор із останнього реального.
- * Викликається сервісами після Prisma-запиту, побудованого через queryBuilder.
+ * Drops the extra probe row and builds the cursor from the last real one.
+ * Called by services after a Prisma query built through queryBuilder.
  */
 export function toPage<T>(
   rows: T[],

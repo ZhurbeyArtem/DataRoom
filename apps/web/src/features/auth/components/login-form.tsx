@@ -28,7 +28,7 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
         />
       </Field>
 
-      <Field label="Пароль" htmlFor="password">
+      <Field label="Password" htmlFor="password">
         <Input
           id="password"
           type="password"
@@ -41,9 +41,10 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
 
       <FormError message={login.isError ? errorMessage(login.error) : null} />
 
-      {/* Кнопка блокується на час запиту: подвійний клік не має слати два входи. */}
+      {/* Disabled while the request runs: a double click must not send two
+          sign-in attempts. */}
       <Button type="submit" className="w-full" loading={login.isPending}>
-        {login.isPending ? 'Входимо…' : 'Увійти'}
+        {login.isPending ? 'Signing in…' : 'Sign in'}
       </Button>
     </form>
   );

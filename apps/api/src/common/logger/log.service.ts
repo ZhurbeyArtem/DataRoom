@@ -12,12 +12,12 @@ export class LogService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Записує один рядок у таблицю Log.
-   * `name` — ім'я логу, `data` — його вміст, `ttl` — час життя в мілісекундах.
-   * requestId дістається з контексту запиту, передавати його не треба.
+   * Writes a single row into the Log table.
+   * `name` is the log name, `data` its payload, `ttl` its lifetime in ms.
+   * requestId is taken from the request context, no need to pass it in.
    *
-   * Помилка самого запису ніколи не валить запит: логер — діагностика,
-   * а не частина бізнес-операції.
+   * A failure to write never breaks the request: logging is diagnostics,
+   * not part of the business operation.
    */
   async register(name: string, data: string, ttl: number = TWO_WEEKS_MS): Promise<void> {
     try {
@@ -32,7 +32,7 @@ export class LogService {
         },
       });
     } catch (error) {
-      this.fallback.error(`Не вдалося записати лог "${name}"`, error as Error);
+      this.fallback.error(`Failed to write log "${name}"`, error as Error);
     }
   }
 

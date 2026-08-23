@@ -7,7 +7,7 @@ import type {
 } from '@/types/api';
 
 export const sharesApi = {
-  /** Що саме відкрито за цим посиланням — єдиний запит, доступний лише за токеном. */
+  /** What this link opens — the only request that works on a token alone. */
   target: () => api.get<ShareTargetResponse>('/shares/target'),
 
   listForItem: (itemId: string) => api.get<Share[]>(`/items/${itemId}/shares`),

@@ -3,13 +3,13 @@ import type { UploadTask, UploadStatus } from '../upload.store';
 import { UploadRow } from './upload-panel';
 
 /**
- * Завдання складаємо вручну: справжнє народжується лише всередині черги,
- * а нам потрібні всі чотири його стани поруч.
+ * The task is assembled by hand: a real one is only born inside the queue,
+ * and we need all four of its states side by side.
  */
 function task(status: UploadStatus, overrides: Partial<UploadTask> = {}): UploadTask {
   return {
     id: `task-${status}`,
-    fileName: 'Договір оренди приміщення 2026 (фінальна редакція).pdf',
+    fileName: 'Office lease agreement 2026 (final revision).pdf',
     size: 2_400_000,
     progress: 0,
     status,
@@ -22,7 +22,7 @@ function task(status: UploadStatus, overrides: Partial<UploadTask> = {}): Upload
 }
 
 const meta = {
-  title: 'Аплоад/UploadRow',
+  title: 'Upload/UploadRow',
   component: UploadRow,
   decorators: [
     (Story) => (
@@ -49,9 +49,9 @@ export const Done: Story = {
   args: { task: task('done', { progress: 1 }) },
 };
 
-/** З помилкою зʼявляється кнопка повтору — файл не треба вибирати заново. */
+/** On failure a retry button appears — the file need not be picked again. */
 export const Failed: Story = {
-  args: { task: task('error', { error: 'Сховище не прийняло файл' }) },
+  args: { task: task('error', { error: 'Storage rejected the file' }) },
 };
 
 export const Canceled: Story = {

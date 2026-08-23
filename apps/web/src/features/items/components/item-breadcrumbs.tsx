@@ -13,19 +13,20 @@ import type { Breadcrumb as Crumb } from '@/types/api';
 
 interface ItemBreadcrumbsProps {
   roomId: string;
-  /** Не задано — крихти кімнати немає взагалі: у глядача її й не має бути. */
+  /** Omitted — there is no room crumb at all: a viewer should not have one. */
   roomName?: string;
-  /** Ланцюжок предків від кореня; порожній, коли ми в корені кімнати. */
+  /** Ancestor chain from the root; empty when standing at the room root. */
   trail: Crumb[];
   current?: string;
-  /** У публічному режимі посилання ведуть на /shared/токен, а не в кімнату. */
+  /** In public mode links point at /shared/<token> rather than at the room. */
   shareToken?: string;
   readOnly?: boolean;
 }
 
 /**
- * Перша крихта — назва кімнати, а не кореневої папки: користувач мислить
- * кімнатою, і саме її назву він задавав. Сам корінь у ланцюжку пропускаємо.
+ * The first crumb is the room name rather than the root folder: users think
+ * in rooms, and the room name is what they typed. The root itself is skipped
+ * in the chain.
  */
 export function ItemBreadcrumbs({
   roomId,
@@ -35,9 +36,9 @@ export function ItemBreadcrumbs({
   shareToken,
   readOnly,
 }: ItemBreadcrumbsProps) {
-  // У власника перша крихта — назва кімнати, а сам корінь пропускається.
-  // У глядача коренем є той елемент, яким поділилися, тому пропускати
-  // нічого не можна: інакше зникла б єдина крихта, що в нього є.
+  // For an owner the first crumb is the room name and the root is skipped.
+  // For a viewer the root IS the shared item, so nothing may be skipped —
+  // otherwise the only crumb they have would disappear.
   const withoutRoot = readOnly ? trail : trail.slice(1);
   const rootHref = shareToken ? paths.publicShare(shareToken) : paths.room(roomId);
   const folderHref = (id: string) =>
@@ -46,8 +47,8 @@ export function ItemBreadcrumbs({
   return (
     <Breadcrumb>
       <BreadcrumbList>
-        {/* Крихта кімнати лише у власника: глядач її назви не знає, а
-            посилання вело б туди, куди йому все одно заборонено. */}
+        {/* The room crumb is owner-only: a viewer does not know the name,
+            and the link would lead where they are not allowed anyway. */}
         {roomName !== undefined && (
           <BreadcrumbItem>
             {current === undefined && withoutRoot.length === 0 ? (
@@ -58,8 +59,9 @@ export function ItemBreadcrumbs({
           </BreadcrumbItem>
         )}
 
-        {/* Роздільник — сусід елемента, а не його вміст: BreadcrumbSeparator
-            рендерить <li>, і вкладений у <li> він давав би невалідний HTML. */}
+        {/* The separator is a sibling of the item rather than its child:
+            BreadcrumbSeparator renders an <li>, and nesting it inside another
+            <li> would produce invalid HTML. */}
         {withoutRoot.map((crumb) => (
           <Fragment key={crumb.id}>
             <BreadcrumbSeparator />

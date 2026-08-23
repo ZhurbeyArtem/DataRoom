@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsUUID } from 'class-validator';
 
 export class MoveItemDto {
-  @ApiProperty({ description: 'Папка призначення' })
+  @ApiProperty({ description: 'Destination folder' })
   @IsUUID()
   targetParentId!: string;
 }

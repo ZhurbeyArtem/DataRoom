@@ -4,9 +4,9 @@ import { Badge } from '@/components/ui/badge';
 import { setShareToken } from '@/lib/api-client';
 
 export const Route = createFileRoute('/shared/$token')({
-  // Саме beforeLoad, а не useEffect: ефекти виконуються ПІСЛЯ монтування,
-  // а дочірній маршрут устигає надіслати перший запит раніше — і той піде
-  // без заголовка з токеном, отримавши 404 на цілком дійсне посилання.
+  // beforeLoad rather than useEffect: effects run AFTER mount, and the child
+  // route manages to fire its first request before that — which would travel
+  // without the token header and get a 404 on a perfectly valid link.
   beforeLoad: ({ params }) => {
     setShareToken(params.token);
   },
@@ -14,17 +14,17 @@ export const Route = createFileRoute('/shared/$token')({
 });
 
 /**
- * Токен кладеться в http-клієнт, і далі працюють ТІ САМІ запити, що й у
- * власника. Окремих «публічних» ендпоінтів немає — різницю робить лише
- * заголовок.
+ * The token goes into the http client and from there THE SAME requests as
+ * the owner's are used. There are no separate "public" endpoints — the
+ * header alone makes the difference.
  */
 function PublicShell() {
   const { token } = Route.useParams();
 
-  // Ефект і ставить, і прибирає токен. Обидві половини потрібні: у StrictMode
-  // React робить монтування → очищення → монтування, тож без повторного
-  // встановлення токен зникав би одразу після beforeLoad, і всі наступні
-  // запити йшли б без нього.
+  // The effect both sets and clears the token. Both halves are needed: in
+  // StrictMode React does mount → cleanup → mount, so without setting it
+  // again the token would vanish right after beforeLoad and every following
+  // request would go without it.
   useEffect(() => {
     setShareToken(token);
     return () => setShareToken(null);
@@ -35,7 +35,7 @@ function PublicShell() {
       <header className="border-b">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <span className="font-medium tracking-tight">Data Room</span>
-          <Badge variant="secondary">Лише перегляд</Badge>
+          <Badge variant="secondary">View only</Badge>
         </div>
       </header>
 

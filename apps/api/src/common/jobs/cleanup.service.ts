@@ -16,8 +16,8 @@ export class CleanupService {
   ) {}
 
   /**
-   * Окремий cron-сервіс на безкоштовному Render недоступний, тому чистка
-   * живе всередині процесу API.
+   * A separate cron service is not available on the free Render tier, so the
+   * cleanup lives inside the API process.
    */
   @Cron(CronExpression.EVERY_HOUR)
   async run(): Promise<void> {
@@ -28,14 +28,14 @@ export class CleanupService {
     const uploads = await this.removeOrphanUploads();
 
     if (logs.count > 0 || uploads > 0) {
-      this.logger.log(`Прибрано ${logs.count} логів і ${uploads} незавершених аплоадів`);
+      this.logger.log(`Removed ${logs.count} logs and ${uploads} unfinished uploads`);
     }
   }
 
   /**
-   * Аплоад, що не дійшов до confirm за годину, вважається обірваним.
-   * Блоб видаляється ПЕРЕД рядком: якщо перше впаде, наступний прогін
-   * спробує знову, а зникнення рядка залишило б файл у сховищі назавжди.
+   * An upload that never reached confirm within an hour counts as abandoned.
+   * The blob is deleted BEFORE the row: if that fails, the next run tries
+   * again, whereas losing the row would strand the file in storage forever.
    */
   private async removeOrphanUploads(): Promise<number> {
     const orphans = await this.prisma.item.findMany({
@@ -55,8 +55,8 @@ export class CleanupService {
           .filter((key): key is string => key !== null),
       );
     } catch {
-      // Рядки лишаються на місці — наступний прогін спробує ще раз.
-      // Помилку вже записав StorageService.
+      // Rows stay where they are — the next run will try again.
+      // StorageService has already logged the failure.
       return 0;
     }
 

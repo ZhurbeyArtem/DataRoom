@@ -8,7 +8,7 @@ interface AuthShellProps {
   footer: ReactNode;
 }
 
-/** Спільна оболонка входу й реєстрації — щоб дві сторінки не розʼїхались візуально. */
+/** Shared shell for sign-in and sign-up so the two pages cannot drift apart. */
 export function AuthShell({ title, subtitle, children, footer }: AuthShellProps) {
   useDocumentTitle(title);
 
@@ -49,8 +49,9 @@ export function Field({ label, htmlFor, hint, children }: FieldProps) {
 }
 
 /**
- * Помилка живе під формою, а не в тості: користувач має бачити її поруч
- * із полями, які треба виправити, і вона не має зникати за три секунди.
+ * The error sits under the form rather than in a toast: the user should see
+ * it next to the fields they need to fix, and it must not disappear after
+ * three seconds.
  */
 export function FormError({ message }: { message: string | null }) {
   if (!message) return null;

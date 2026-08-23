@@ -35,9 +35,9 @@ import type {
 import { ItemsService } from './items.service';
 
 /**
- * Публічний глядач ходить у ті самі ендпоінти, що й власник — жодних
- * дублюючих /public/items. Запит несе або Bearer-токен, або X-Share-Token,
- * а AccessGuard зводить обидва випадки до однієї перевірки.
+ * A public viewer hits the same endpoints as the owner — there are no
+ * duplicate /public/items routes. A request carries either a Bearer token or
+ * an X-Share-Token, and AccessGuard reduces both cases to one check.
  */
 @ApiTags('items')
 @ApiBearerAuth()
@@ -52,7 +52,7 @@ export class ItemsController {
   @Get()
   @UseGuards(OptionalJwtGuard, AccessGuard)
   @RequireRole('VIEWER')
-  @ApiOperation({ summary: 'Вміст папки або кореня кімнати' })
+  @ApiOperation({ summary: 'Contents of a folder or of a room root' })
   list(
     @Access() access: AccessResult,
     @Query() query: ListItemsDto,
@@ -60,11 +60,11 @@ export class ItemsController {
     return this.items.listChildren(access.item.id, query);
   }
 
-  // Оголошений вище за @Get(':id') навмисно: інакше Nest спробує розібрати
-  // слово "trash" як UUID і поверне 400 замість вмісту кошика.
+  // Declared above @Get(':id') on purpose: otherwise Nest would try to parse
+  // the word "trash" as a UUID and answer 400 instead of the trash listing.
   @Get('trash/:dataRoomId')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Вміст кошика кімнати; лише власник' })
+  @ApiOperation({ summary: 'Trash contents of a room; owner only' })
   async trash(
     @CurrentUser() user: AuthUser,
     @Param('dataRoomId', ParseUUIDPipe) dataRoomId: string,
@@ -73,12 +73,13 @@ export class ItemsController {
     return this.items.listTrash(dataRoomId, user.id);
   }
 
-  // Так само вище за @Get(':id'): інакше слово "search" піде в ParseUUIDPipe.
-  // Пошук іде по всій кімнаті, тому спирається на власність, а не на
-  // AccessGuard — той працює з конкретним вузлом, а не з кімнатою.
+  // Above @Get(':id') for the same reason: otherwise the word "search" would
+  // reach ParseUUIDPipe. Search spans the whole room, so it relies on
+  // ownership rather than AccessGuard — that guard works with a single node,
+  // not with a room.
   @Get('search')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Пошук за іменем у межах кімнати; лише власник' })
+  @ApiOperation({ summary: 'Search by name within a room; owner only' })
   async search(
     @CurrentUser() user: AuthUser,
     @Query() query: SearchItemsDto,
@@ -90,7 +91,7 @@ export class ItemsController {
   @Get(':id')
   @UseGuards(OptionalJwtGuard, AccessGuard)
   @RequireRole('VIEWER')
-  @ApiOperation({ summary: 'Елемент разом із ланцюжком предків' })
+  @ApiOperation({ summary: 'An item together with its ancestor chain' })
   get(@Access() access: AccessResult): Promise<{
     item: ItemDto;
     breadcrumbs: Breadcrumb[];
@@ -101,7 +102,7 @@ export class ItemsController {
   @Get(':id/stats')
   @UseGuards(OptionalJwtGuard, AccessGuard)
   @RequireRole('VIEWER')
-  @ApiOperation({ summary: 'Розмір і кількість елементів усього піддерева' })
+  @ApiOperation({ summary: 'Total size and item count of the whole subtree' })
   stats(@Access() access: AccessResult): Promise<SubtreeStats> {
     return this.items.getSubtreeStats(access.item);
   }
@@ -109,7 +110,7 @@ export class ItemsController {
   @Post('folders')
   @UseGuards(OptionalJwtGuard, AccessGuard)
   @RequireRole('OWNER')
-  @ApiOperation({ summary: 'Створити папку' })
+  @ApiOperation({ summary: 'Create a folder' })
   createFolder(
     @CurrentUser() user: AuthUser,
     @Access() access: AccessResult,
@@ -121,7 +122,7 @@ export class ItemsController {
   @Patch(':id')
   @UseGuards(OptionalJwtGuard, AccessGuard)
   @RequireRole('OWNER')
-  @ApiOperation({ summary: 'Перейменувати; конфлікт імені розвʼязується суфіксом' })
+  @ApiOperation({ summary: 'Rename; a name clash is resolved with a suffix' })
   rename(@Access() access: AccessResult, @Body() dto: RenameItemDto): Promise<ItemDto> {
     return this.items.rename(access.item, dto.name);
   }
@@ -129,7 +130,7 @@ export class ItemsController {
   @Post(':id/move')
   @UseGuards(OptionalJwtGuard, AccessGuard)
   @RequireRole('OWNER')
-  @ApiOperation({ summary: 'Перемістити в іншу папку' })
+  @ApiOperation({ summary: 'Move into another folder' })
   move(@Access() access: AccessResult, @Body() dto: MoveItemDto): Promise<ItemDto> {
     return this.items.move(access.item, dto.targetParentId);
   }
@@ -137,16 +138,16 @@ export class ItemsController {
   @Delete(':id')
   @UseGuards(OptionalJwtGuard, AccessGuard)
   @RequireRole('OWNER')
-  @ApiOperation({ summary: 'Перемістити в кошик разом із піддеревом' })
+  @ApiOperation({ summary: 'Move to trash together with the subtree' })
   remove(@Access() access: AccessResult): Promise<void> {
     return this.items.moveToTrash(access.item);
   }
 
-  // Без AccessGuard: він шукає лише живі вузли, а тут ідеться саме про
-  // видалений. Кошик — особиста корзина власника, ділитися нею не можна.
+  // No AccessGuard: it only looks for live nodes, and this is about a
+  // deleted one. The trash is the owner's personal bin and is not shareable.
   @Post(':id/restore')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Відновити з кошика; лише власник' })
+  @ApiOperation({ summary: 'Restore from the trash; owner only' })
   restore(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,

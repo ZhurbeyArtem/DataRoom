@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 export interface ObjectMetadata {
-  /** null означає «сховище не сказало», а не «нуль байтів». */
+  /** null means "storage did not say", not "zero bytes". */
   size: number | null;
   mimeType: string | null;
 }
@@ -20,14 +20,14 @@ export class StorageService {
   private readonly bucket: string;
 
   constructor(config: ConfigService) {
-    // Supabase перейшов з ключів anon/service_role на publishable/secret.
-    // Читаємо новий, зі зворотною сумісністю до старого імені.
+    // Supabase moved from anon/service_role keys to publishable/secret ones.
+    // Read the new name, falling back to the old one.
     const secret =
       config.get<string>('SUPABASE_SECRET_KEY') ||
       config.get<string>('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!secret) {
-      throw new Error('Потрібен SUPABASE_SECRET_KEY (або SUPABASE_SERVICE_ROLE_KEY)');
+      throw new Error('SUPABASE_SECRET_KEY (or SUPABASE_SERVICE_ROLE_KEY) is required');
     }
 
     this.client = createClient(config.getOrThrow<string>('SUPABASE_URL'), secret, {
@@ -37,9 +37,9 @@ export class StorageService {
   }
 
   /**
-   * URL, за яким браузер робить PUT напряму в сховище, минаючи наш сервер.
-   * Саме тому API не тримає байтів у памʼяті й не впирається в ліміт тіла
-   * запиту на безкоштовному Render.
+   * A URL the browser PUTs to directly, bypassing our server. This is why the
+   * API never holds file bytes in memory and never hits the request body
+   * limit of the free Render tier.
    */
   async createSignedUploadUrl(key: string): Promise<SignedUpload> {
     const { data, error } = await this.client.storage
@@ -48,7 +48,7 @@ export class StorageService {
 
     if (error || !data) {
       this.logger.error(`createSignedUploadUrl(${key}): ${error?.message}`);
-      throw new InternalServerErrorException('Не вдалося підготувати завантаження');
+      throw new InternalServerErrorException('Could not prepare the upload');
     }
 
     return { url: data.signedUrl, token: data.token };
@@ -61,15 +61,16 @@ export class StorageService {
 
     if (error || !data) {
       this.logger.error(`createSignedUrl(${key}): ${error?.message}`);
-      throw new InternalServerErrorException('Не вдалося підготувати перегляд');
+      throw new InternalServerErrorException('Could not prepare the preview');
     }
 
     return data.signedUrl;
   }
 
   /**
-   * Розмір і тип беремо зі сховища, а не з того, що сказав клієнт: при прямому
-   * аплоаді сервер байтів не бачить, тому єдине джерело правди — сам обʼєкт.
+   * Size and type come from storage rather than from what the client claimed:
+   * with a direct upload the server never sees the bytes, so the object
+   * itself is the only source of truth.
    */
   async getMetadata(key: string): Promise<ObjectMetadata | null> {
     const slash = key.lastIndexOf('/');
@@ -97,9 +98,9 @@ export class StorageService {
   }
 
   /**
-   * Перші `bytes` байтів обʼєкта — рівно стільки, скільки треба, щоб
-   * перевірити сигнатуру файлу. Range замість download(): завантажувати
-   * 50 МБ заради пʼяти байтів не варто.
+   * The first `bytes` bytes of the object — exactly as much as is needed to
+   * check the file signature. Range instead of download(): pulling 50 MB for
+   * the sake of five bytes is not worth it.
    */
   async readHead(key: string, bytes: number): Promise<string | null> {
     try {
@@ -116,9 +117,10 @@ export class StorageService {
   }
 
   /**
-   * Кидає при відмові, а не ковтає її: обидва виклики видаляють блоби перед
-   * рядками в БД, і кожен має сам вирішити, чи можна після невдачі стирати
-   * ключі. Мовчазна помилка тут означала б назавжди загублені обʼєкти.
+   * Throws on failure instead of swallowing it: both callers delete blobs
+   * before the database rows, and each has to decide for itself whether the
+   * keys may be erased after a failure. A silent error here would mean
+   * permanently orphaned objects.
    */
   async remove(keys: string[]): Promise<void> {
     if (keys.length === 0) return;
@@ -126,8 +128,8 @@ export class StorageService {
     const { error } = await this.client.storage.from(this.bucket).remove(keys);
 
     if (error) {
-      this.logger.error(`remove(${keys.length} обʼєктів): ${error.message}`);
-      throw new InternalServerErrorException('Не вдалося прибрати файли зі сховища');
+      this.logger.error(`remove(${keys.length} objects): ${error.message}`);
+      throw new InternalServerErrorException('Could not remove files from storage');
     }
   }
 }

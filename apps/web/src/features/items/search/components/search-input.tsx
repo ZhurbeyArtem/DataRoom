@@ -14,8 +14,8 @@ export function SearchInput({
 
       <Input
         type="search"
-        placeholder="Пошук по кімнаті"
-        aria-label="Пошук за іменем файлу"
+        placeholder="Search this room"
+        aria-label="Search by file name"
         className="pr-8 pl-8"
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -24,7 +24,7 @@ export function SearchInput({
       {value && (
         <button
           type="button"
-          aria-label="Очистити пошук"
+          aria-label="Clear search"
           className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
           onClick={() => onChange('')}
         >

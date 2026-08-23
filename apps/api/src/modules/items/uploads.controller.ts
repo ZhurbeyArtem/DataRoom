@@ -22,7 +22,7 @@ export class UploadsController {
   @Post('upload-url')
   @UseGuards(OptionalJwtGuard, AccessGuard)
   @RequireRole('OWNER')
-  @ApiOperation({ summary: 'Крок 1: підписаний URL і рядок у статусі PENDING' })
+  @ApiOperation({ summary: 'Step 1: a signed URL and a row in PENDING status' })
   createUploadUrl(
     @CurrentUser() user: AuthUser,
     @Access() access: AccessResult,
@@ -34,17 +34,17 @@ export class UploadsController {
   @Post(':id/confirm')
   @UseGuards(OptionalJwtGuard, AccessGuard)
   @RequireRole('OWNER')
-  @ApiOperation({ summary: 'Крок 3: звірка зі сховищем і перехід у READY' })
+  @ApiOperation({ summary: 'Step 3: verification against storage and transition to READY' })
   confirm(@Access() access: AccessResult): Promise<ItemDto> {
     return this.uploads.confirmUpload(access.item);
   }
 
-  // Читання, тому VIEWER: той, кому пошарили файл або папку над ним,
-  // мусить мати змогу його відкрити.
+  // A read, hence VIEWER: whoever was given the file, or a folder above it,
+  // must be able to open it.
   @Get(':id/download-url')
   @UseGuards(OptionalJwtGuard, AccessGuard)
   @RequireRole('VIEWER')
-  @ApiOperation({ summary: 'Підписане посилання на читання, TTL 60 с' })
+  @ApiOperation({ summary: 'Signed read link, 60-second TTL' })
   downloadUrl(@Access() access: AccessResult): Promise<{ url: string }> {
     return this.uploads.createDownloadUrl(access.item);
   }

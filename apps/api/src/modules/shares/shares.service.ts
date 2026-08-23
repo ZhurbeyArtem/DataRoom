@@ -19,10 +19,10 @@ export class SharesService extends BaseCrudService<Prisma.ShareDelegate> {
   }
 
   /**
-   * Один рядок Share — це один спосіб доступу, а не один користувач.
-   * Публічне посилання: токен є, адресата немає. Поіменний доступ: навпаки.
-   * Обидва режими можуть існувати на одному Item одночасно; CHECK-констрейнт
-   * у БД не дасть створити рядок-химеру.
+   * One Share row is one way in, not one user. A public link has a token and
+   * no addressee; a named grant is the other way round. Both modes can exist
+   * on the same Item at once, and a CHECK constraint in the database refuses
+   * to create a chimera row.
    */
   async createShare(
     itemId: string,
@@ -36,7 +36,7 @@ export class SharesService extends BaseCrudService<Prisma.ShareDelegate> {
         itemId,
         createdById,
         type: dto.type,
-        // 32 випадкові байти: вгадати такий токен перебором неможливо.
+        // 32 random bytes: such a token cannot be brute-forced.
         token: isPublic ? randomBytes(32).toString('base64url') : null,
         granteeEmail: isPublic
           ? null
@@ -49,9 +49,9 @@ export class SharesService extends BaseCrudService<Prisma.ShareDelegate> {
   }
 
   /**
-   * Глядач за посиланням має лише токен: ні id елемента, ні id кімнати.
-   * Без цього він не може навіть попросити лістинг, бо той вимагає
-   * parentId або dataRoomId.
+   * A link visitor holds only the token — no item id, no room id. Without
+   * this endpoint they could not even ask for a listing, since that requires
+   * parentId or dataRoomId.
    */
   async resolveByToken(token: string): Promise<ShareTargetDto> {
     const now = new Date();
@@ -67,9 +67,9 @@ export class SharesService extends BaseCrudService<Prisma.ShareDelegate> {
       include: { item: true },
     });
 
-    // Те саме 404, що й скрізь: відкликане, протерміноване й неіснуюче
-    // посилання мають бути нерозрізненними.
-    if (!share) throw new NotFoundException('Посилання недійсне');
+    // The same 404 as everywhere else: a revoked, an expired and a
+    // non-existent link must be indistinguishable.
+    if (!share) throw new NotFoundException('This link is not valid');
 
     return { item: toItemDto(share.item), dataRoomId: share.item.dataRoomId };
   }
@@ -84,13 +84,16 @@ export class SharesService extends BaseCrudService<Prisma.ShareDelegate> {
   }
 
   /**
-   * Відкликання не видаляє рядок: має лишатися слід, що доступ був і його
-   * забрали. Умова по ownerId — щоб чужий доступ не відкликав хтось інший.
+   * Revoking does not delete the row: a trace that access existed and was
+   * taken away has to remain. The ownerId condition keeps one person from
+   * revoking someone else's grant.
    *
-   * Порожній count означає одне з трьох: доступу немає, він чужий або вже
-   * відкликаний. Відповідь на всі три — те саме 404, що й скрізь; головне,
-   * що вона не «успіх». Інакше інтерфейс казав би «доступ відкликано» там,
-   * де він лишився живим, — наприклад, коли id застарів після рефетчу.
+   * A zero count means one of three things: the grant does not exist, it
+   * belongs to someone else, or it is already revoked. The answer to all
+   * three is the same 404 as everywhere else; what matters is that it is not
+   * "success". Otherwise the UI would report "access revoked" while the
+   * grant is still live — for instance when the id went stale after a
+   * refetch.
    */
   async revoke(shareId: string, ownerId: string): Promise<void> {
     const { count } = await this.prisma.share.updateMany({
@@ -98,12 +101,12 @@ export class SharesService extends BaseCrudService<Prisma.ShareDelegate> {
       data: { revokedAt: new Date() },
     });
 
-    if (count === 0) throw new NotFoundException('Доступ не знайдено');
+    if (count === 0) throw new NotFoundException('Share not found');
   }
 
   /**
-   * Те, чим поділилися зі мною поіменно. Публічні посилання сюди не
-   * потрапляють — вони нікому конкретно не адресовані.
+   * What has been shared with me by name. Public links do not show up here —
+   * they are not addressed to anyone in particular.
    */
   async listSharedWithMe(email: string): Promise<SharedWithMeEntry[]> {
     const rows = await this.prisma.share.findMany({

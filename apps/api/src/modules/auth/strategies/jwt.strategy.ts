@@ -22,7 +22,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const user = await this.users.findOne({ where: { id: payload.sub } });
     if (!user) throw new UnauthorizedException();
 
-    // Звідси userId стає доступним логеру й сервісам без протягування параметром.
+    // From here userId is available to the logger and services without being
+    // threaded through as a parameter.
     RequestContext.setUserId(user.id);
 
     return { id: user.id, email: user.email, name: user.name };

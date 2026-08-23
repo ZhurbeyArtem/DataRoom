@@ -9,7 +9,7 @@ export interface ItemDto {
   size: number | null;
   mimeType: string | null;
   status: ItemStatus;
-  /** Заповнено лише в кошику; у звичайному лістингу завжди null. */
+  /** Set only in the trash; always null in a normal listing. */
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -26,8 +26,8 @@ export interface SubtreeStats {
   bytes: number;
 }
 
-/** Результат пошуку несе шлях розташування: без нього два однойменні
- * файли в різних папках неможливо розрізнити у списку. */
+/** A search result carries its location path: without it two identically
+ * named files in different folders cannot be told apart in the list. */
 export interface SearchResultItem extends ItemDto {
   location: Breadcrumb[];
 }

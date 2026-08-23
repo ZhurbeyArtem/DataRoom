@@ -5,9 +5,9 @@ import { paths } from '@/config/paths';
 import { useSessionStore } from '../stores/session.store';
 
 /**
- * Дзеркало захищеної гілки: залогінений користувач не має бачити форму
- * входу. Поки сесія невідома — скелетон, інакше форма блимала б перед
- * редіректом на головну.
+ * The mirror image of the protected branch: a signed-in user should not see
+ * the sign-in form. While the session is unknown, show a skeleton — otherwise
+ * the form would flash before the redirect home.
  */
 export function GuestOnly({ children }: { children: ReactNode }) {
   const status = useSessionStore((state) => state.status);

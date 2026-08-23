@@ -13,7 +13,7 @@ interface ItemActionsMenuProps {
   onRename: (item: Item) => void;
   onMove: (item: Item) => void;
   onDelete: (item: Item) => void;
-  /** Не задано — пункт «Поділитися» не рендериться взагалі. */
+  /** Omitted — the "Share" entry is not rendered at all. */
   onShare?: (item: Item) => void;
 }
 
@@ -27,7 +27,7 @@ export function ItemActionsMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<Button variant="ghost" size="icon" aria-label={`Дії з «${item.name}»`} />}
+        render={<Button variant="ghost" size="icon" aria-label={`Actions for “${item.name}”`} />}
       >
         <MoreHorizontal className="size-4" />
       </DropdownMenuTrigger>
@@ -35,21 +35,21 @@ export function ItemActionsMenu({
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => onRename(item)}>
           <Pencil className="size-4" />
-          Перейменувати
+          Rename
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onMove(item)}>
           <FolderInput className="size-4" />
-          Перемістити
+          Move
         </DropdownMenuItem>
         {onShare && (
           <DropdownMenuItem onClick={() => onShare(item)}>
             <Share2 className="size-4" />
-            Поділитися
+            Share
           </DropdownMenuItem>
         )}
         <DropdownMenuItem variant="destructive" onClick={() => onDelete(item)}>
           <Trash2 className="size-4" />
-          Видалити
+          Delete
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -12,10 +12,10 @@ export interface AccessResult {
   item: Item;
   role: AccessRole;
   /**
-   * Найвищий вузол, який цьому запитувачу взагалі дозволено бачити.
-   * Для власника — корінь кімнати, для глядача — той елемент, на який
-   * видано доступ. Вище нього не можна показувати навіть назви: інакше
-   * ланцюжок предків розкривав би структуру чужої кімнати.
+   * The highest node this requester is allowed to see at all.
+   * For an owner that is the room root; for a viewer, the item the share was
+   * issued on. Above it not even names may be shown: otherwise the ancestor
+   * chain would reveal the structure of someone else's room.
    */
   scopeItemId: string;
 }

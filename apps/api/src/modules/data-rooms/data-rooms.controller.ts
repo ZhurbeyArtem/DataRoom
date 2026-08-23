@@ -26,13 +26,13 @@ export class DataRoomsController {
   constructor(private readonly rooms: DataRoomsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Мої кімнати' })
+  @ApiOperation({ summary: 'My data rooms' })
   list(@CurrentUser() user: AuthUser): Promise<DataRoom[]> {
     return this.rooms.listForOwner(user.id);
   }
 
   @Post()
-  @ApiOperation({ summary: 'Створити кімнату разом із кореневою папкою' })
+  @ApiOperation({ summary: 'Create a data room together with its root folder' })
   create(
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateDataRoomDto,
@@ -41,7 +41,7 @@ export class DataRoomsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Кімната за id' })
+  @ApiOperation({ summary: 'Data room by id' })
   get(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
@@ -50,7 +50,7 @@ export class DataRoomsController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Перейменувати кімнату' })
+  @ApiOperation({ summary: 'Rename a data room' })
   rename(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
@@ -60,7 +60,7 @@ export class DataRoomsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Видалити кімнату з усім вмістом' })
+  @ApiOperation({ summary: 'Delete a data room with everything in it' })
   remove(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,

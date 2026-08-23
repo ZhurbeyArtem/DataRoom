@@ -1,4 +1,4 @@
-/** Спільні для всього API форми відповідей. */
+/** Response shapes shared across the whole API. */
 export interface Paginated<T> {
   data: T[];
   nextCursor: string | null;
@@ -18,7 +18,7 @@ export interface Item {
   size: number | null;
   mimeType: string | null;
   status: ItemStatus;
-  /** Заповнено лише в кошику; у звичайному лістингу завжди null. */
+  /** Set only in the trash; always null in a normal listing. */
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -86,13 +86,13 @@ export interface UploadTicket {
 }
 
 /**
- * Тіла запитів беруться зі згенерованої зі Swagger схеми, а не пишуться руками:
- * перейменування поля в DTO на бекенді ламає збірку фронту, поки його не
- * поправлено.
+ * Request bodies come from the schema generated out of Swagger rather than
+ * being hand-written: renaming a field in a backend DTO breaks the frontend
+ * build until it is fixed.
  *
- * Відповіді сюди не потрапляють: контролери повертають звичайні TS-інтерфейси,
- * і Nest не має з чого будувати схему відповіді. Тому форми вище описані
- * вручну — це відомий розрив, а не недогляд.
+ * Responses do not come from there: controllers return plain TS interfaces,
+ * so Nest has nothing to build a response schema from. That is why the
+ * shapes above are described by hand — a known gap, not an oversight.
  */
 import type { components } from './api.gen';
 

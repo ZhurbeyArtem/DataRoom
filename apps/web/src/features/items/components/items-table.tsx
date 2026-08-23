@@ -20,9 +20,9 @@ interface ItemsTableProps {
   onLoadMore: () => void;
   onOpen: (item: Item) => void;
   /**
-   * Необовʼязковий: саме через це одна таблиця обслуговує і власника,
-   * і публічного глядача. У режимі читання проп просто не передається,
-   * і колонка дій не існує — не прихована стилями, а відсутня.
+   * Optional: this is what lets one table serve both the owner and a public
+   * viewer. In read-only mode the prop is simply not passed and the actions
+   * column does not exist — not hidden with styles, absent.
    */
   renderRowActions?: (item: Item) => ReactNode;
 }
@@ -38,8 +38,8 @@ export function ItemsTable({
 }: ItemsTableProps) {
   const sentinel = useRef<HTMLTableRowElement>(null);
 
-  // Довантаження за появою службового рядка в полі зору: користувач просто
-  // гортає, без кнопки «показати ще».
+  // The next page loads when the sentinel row comes into view: the user just
+  // scrolls, with no "load more" button.
   useEffect(() => {
     const node = sentinel.current;
     if (!node || !hasNextPage) return;
@@ -53,16 +53,16 @@ export function ItemsTable({
   }, [hasNextPage, onLoadMore, items.length]);
 
   return (
-    // Таблиця скролиться всередині себе, а сторінка ніколи не їде вбік.
+    // The table scrolls inside itself; the page never moves sideways.
     <div className="overflow-x-auto rounded-xl border">
-      {/* На вузькому екрані другорядні колонки сховані, тому мінімальна
-          ширина там не потрібна — і скролу теж немає. */}
+      {/* On a narrow screen the secondary columns are hidden, so no minimum
+          width is needed there — and there is no scrolling either. */}
       <Table className="sm:min-w-[36rem]">
         <TableHeader>
           <TableRow>
-            <TableHead>Назва</TableHead>
-            <TableHead className="hidden w-28 text-right sm:table-cell">Розмір</TableHead>
-            <TableHead className="hidden w-40 sm:table-cell">Змінено</TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead className="hidden w-28 text-right sm:table-cell">Size</TableHead>
+            <TableHead className="hidden w-40 sm:table-cell">Modified</TableHead>
             {renderRowActions && <TableHead className="w-12" />}
           </TableRow>
         </TableHeader>
@@ -110,17 +110,17 @@ export function ItemsTable({
                 colSpan={renderRowActions ? 4 : 3}
                 className="p-0 text-center text-sm text-muted-foreground"
               >
-                {/* Кнопка, а не порожній рядок: якщо спостерігач не спрацює —
-                    вимкнений JS-API, режим економії, нестандартний браузер —
-                    користувач усе одно має спосіб догорнути список. Заразом
-                    це дає доступ із клавіатури. */}
+                {/* A button rather than an empty row: if the observer never
+                    fires — a disabled JS API, a battery-saving mode, an
+                    unusual browser — the user still has a way to reach the
+                    end of the list. It also makes this keyboard-accessible. */}
                 <button
                   type="button"
                   className="w-full py-4 hover:text-foreground disabled:opacity-60"
                   disabled={isFetchingNextPage}
                   onClick={onLoadMore}
                 >
-                  {isFetchingNextPage ? 'Завантажуємо…' : 'Показати ще'}
+                  {isFetchingNextPage ? 'Loading…' : 'Show more'}
                 </button>
               </TableCell>
             </TableRow>
@@ -131,7 +131,7 @@ export function ItemsTable({
   );
 }
 
-/** Скелетон повторює форму рядків, а не крутиться по центру таблиці. */
+/** The skeleton mirrors the row shape instead of spinning in the middle. */
 function LoadingRows({ hasActions }: { hasActions: boolean }) {
   return (
     <>

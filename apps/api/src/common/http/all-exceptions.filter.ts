@@ -22,8 +22,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    // Тільки серверні помилки варті запису: 4xx — це очікувана поведінка
-    // (не знайдено, немає доступу, невалідне тіло), і вони засмітили б таблицю.
+    // Only server errors are worth storing: 4xx responses are expected
+    // behaviour (not found, no access, invalid body) and would flood the table.
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
       void this.logService.register('http.exception', this.describe(exception, host));
     }
@@ -36,13 +36,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
   }
 
   /**
-   * ValidationPipe кладе перелік порушень у тіло відповіді, а не в message —
-   * без цього розбору клієнт отримував би марне "Bad Request Exception"
-   * замість "email must be an email".
+   * ValidationPipe puts the list of violations in the response body rather
+   * than in message — without unpacking it the client would get a useless
+   * "Bad Request Exception" instead of "email must be an email".
    */
   private messageOf(exception: unknown): string {
     if (!(exception instanceof HttpException)) {
-      return 'Внутрішня помилка сервера';
+      return 'Internal server error';
     }
 
     const body = exception.getResponse();

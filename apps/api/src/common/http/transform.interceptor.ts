@@ -6,8 +6,8 @@ export class TransformInterceptor<T> implements NestInterceptor<T, unknown> {
   intercept(_context: ExecutionContext, next: CallHandler<T>): Observable<unknown> {
     return next.handle().pipe(
       map((payload) => {
-        // Сторінки вже мають форму { data, nextCursor } — загортати їх ще раз
-        // означало б віддавати { data: { data, nextCursor } }.
+        // Pages already have the shape { data, nextCursor } — wrapping them
+        // again would mean returning { data: { data, nextCursor } }.
         if (payload !== null && typeof payload === 'object' && 'nextCursor' in payload) {
           return payload;
         }

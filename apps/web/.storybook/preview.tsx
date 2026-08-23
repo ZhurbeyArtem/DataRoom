@@ -1,6 +1,6 @@
 import type { Preview } from '@storybook/tanstack-react';
-// Той самий css, що й у застосунку: без нього компоненти рендеряться
-// без токенів теми і Storybook показує не те, що бачить користувач.
+// The same css the app uses: without it components render without theme
+// tokens and Storybook shows something the user never sees.
 import '../src/index.css';
 
 const preview: Preview = {

@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 
-/** Сам refresh-токен ніколи не лягає в БД — лише його хеш. */
+/** The refresh token itself never reaches the database — only its hash. */
 export function generateRefreshToken(): string {
   return randomBytes(48).toString('base64url');
 }

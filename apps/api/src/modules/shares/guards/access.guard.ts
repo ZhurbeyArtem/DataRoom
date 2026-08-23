@@ -9,10 +9,10 @@ import type { AccessResult, AccessRole, Principal } from '../interfaces/access.i
 type GuardedRequest = Request & { user?: AuthUser; access?: AccessResult };
 
 /**
- * Гварди виконуються ДО пайпів, тому сюди тіло й query приходять такими,
- * якими їх надіслали: рядком, масивом, обʼєктом. Передати таке в Prisma
- * означає отримати 500 і рядок у таблиці Log з волі будь-кого ззовні,
- * тож форму id перевіряємо самі.
+ * Guards run BEFORE pipes, so the body and query arrive here exactly as they
+ * were sent: a string, an array, an object. Passing that to Prisma means a
+ * 500 and a Log row at the whim of anyone outside, so the shape of the id is
+ * checked here.
  */
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -44,10 +44,10 @@ export class AccessGuard implements CanActivate {
         context.getClass(),
       ]) ?? 'VIEWER';
 
-    // Знову 404, а не 403: глядач не має відрізняти «немає прав»
-    // від «такого елемента не існує».
+    // Again 404 rather than 403: a viewer must not be able to tell "no
+    // permission" from "no such item".
     if (required === 'OWNER' && result.role !== 'OWNER') {
-      throw new NotFoundException('Елемент не знайдено');
+      throw new NotFoundException('Item not found');
     }
 
     request.access = result;
@@ -55,10 +55,10 @@ export class AccessGuard implements CanActivate {
   }
 
   /**
-   * Ціль перевірки береться з трьох місць, бо вона різна за формою:
-   * для GET /items/:id це параметр шляху, для POST /items/folders —
-   * папка-батько в тілі, для GET /items?parentId= — параметр запиту.
-   * Логіка перевірки при цьому одна.
+   * The target comes from three places because its shape differs: for
+   * GET /items/:id it is a path parameter, for POST /items/folders the parent
+   * folder in the body, for GET /items?parentId= a query parameter. The check
+   * itself is the same in all three cases.
    */
   private resolveTarget(request: GuardedRequest, principal: Principal): Promise<AccessResult> {
     const params = request.params as Record<string, unknown>;
@@ -70,11 +70,11 @@ export class AccessGuard implements CanActivate {
 
     if (itemId) return this.access.resolve(itemId, principal);
 
-    // Лістинг кореня просять по кімнаті — доступ до кімнати це доступ
-    // до її кореневої папки.
+    // The root listing is requested by room — access to a room is access to
+    // its root folder.
     const roomId = asItemId(query.dataRoomId);
     if (roomId) return this.access.resolveForRoom(roomId, principal);
 
-    throw new NotFoundException('Елемент не знайдено');
+    throw new NotFoundException('Item not found');
   }
 }

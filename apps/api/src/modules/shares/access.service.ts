@@ -8,12 +8,12 @@ export class AccessService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Єдина точка, що вирішує «можна чи ні». Дві гілки: власник кімнати
-   * проходить одразу; решта — якщо на самому вузлі або на будь-якому
-   * з його предків є живий Share.
+   * The single point that decides "allowed or not". Two branches: the room
+   * owner passes immediately; everyone else passes if a live Share exists on
+   * the node itself or on any of its ancestors.
    *
-   * Відмова — завжди 404, ніколи 403: різниця між ними дозволила б
-   * перебором зʼясувати, які документи існують у чужій кімнаті.
+   * A refusal is always 404, never 403: the difference between them would
+   * let someone enumerate which documents exist in another user's room.
    */
   async resolve(itemId: string, principal: Principal): Promise<AccessResult> {
     const item = await this.prisma.item.findFirst({
@@ -21,35 +21,36 @@ export class AccessService {
       include: { dataRoom: { select: { ownerId: true } } },
     });
 
-    if (!item) throw new NotFoundException('Елемент не знайдено');
+    if (!item) throw new NotFoundException('Item not found');
 
     if (principal.userId && item.dataRoom.ownerId === principal.userId) {
-      // Власник бачить усе аж до кореня: перший елемент шляху або він сам.
+      // An owner sees everything up to the root: the first path element, or
+      // the node itself.
       return { item, role: 'OWNER', scopeItemId: item.path[0] ?? item.id };
     }
 
     const share = await this.findLiveShare(item, principal);
-    if (!share) throw new NotFoundException('Елемент не знайдено');
+    if (!share) throw new NotFoundException('Item not found');
 
     return { item, role: 'VIEWER', scopeItemId: share.itemId };
   }
 
-  /** Доступ до кімнати — це доступ до її кореневої папки. */
+  /** Access to a room is access to its root folder. */
   async resolveForRoom(dataRoomId: string, principal: Principal): Promise<AccessResult> {
     const room = await this.prisma.dataRoom.findUnique({
       where: { id: dataRoomId },
       select: { rootItemId: true },
     });
 
-    if (!room?.rootItemId) throw new NotFoundException('Кімнату не знайдено');
+    if (!room?.rootItemId) throw new NotFoundException('Data room not found');
 
     return this.resolve(room.rootItemId, principal);
   }
 
   /**
-   * chain = [item.id, ...item.path] — це і є успадкування доступу вниз
-   * по дереву. Поділилися папкою, і все всередині відкривається тією ж
-   * перевіркою, без рекурсії.
+   * chain = [item.id, ...item.path] — this is what makes access inherit down
+   * the tree. Share a folder and everything inside opens through the same
+   * check, with no recursion.
    */
   private findLiveShare(item: Item, principal: Principal) {
     const chain = [item.id, ...item.path];

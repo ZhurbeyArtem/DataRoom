@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/tanstack-react';
 import { AccessDeniedScreen } from './access-denied-screen';
 
 const meta = {
-  title: 'Екрани/AccessDeniedScreen',
+  title: 'Screens/AccessDeniedScreen',
   component: AccessDeniedScreen,
 } satisfies Meta<typeof AccessDeniedScreen>;
 
@@ -10,10 +10,10 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** Публічному глядачеві повертатися нікуди — кнопки немає. */
+/** A public visitor has nowhere to go back to — no button. */
 export const Default: Story = {};
 
-/** Власнику є куди: у кімнату, з якої він прийшов. */
+/** An owner does: back to the room they came from. */
 export const WithBackButton: Story = {
   args: { onBack: () => {} },
 };

@@ -2,8 +2,9 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { itemsApi } from '../api/items';
 
 /**
- * Ключ будується від папки, вміст якої показуємо. Для кореня це id кімнати,
- * бо конкретного parentId у нас ще немає — сервер сам знайде корінь.
+ * The key is built from the folder being listed. For a root that is the room
+ * id, since we have no concrete parentId yet — the server finds the root
+ * itself.
  */
 export function itemsKey(scopeId: string) {
   return ['items', scopeId] as const;
@@ -19,9 +20,9 @@ interface Scope {
 }
 
 /**
- * Курсорна пагінація лягає на useInfiniteQuery один в один: сервер віддає
- * nextCursor, ми повертаємо його з getNextPageParam. Номерів сторінок немає
- * і не треба — у файловому менеджері гортають скролом.
+ * Cursor pagination maps onto useInfiniteQuery one to one: the server
+ * returns nextCursor and we hand it back from getNextPageParam. There are no
+ * page numbers and none are needed — a file manager is scrolled, not paged.
  */
 export function useItemsList(scope: Scope) {
   const scopeId = scope.parentId ?? scope.dataRoomId ?? '';
@@ -40,7 +41,7 @@ export function useItemsList(scope: Scope) {
   });
 }
 
-/** Елемент разом із ланцюжком предків — обидва приходять одним запитом. */
+/** An item together with its ancestor chain — both in a single request. */
 export function useItem(itemId: string | undefined) {
   return useQuery({
     queryKey: itemKey(itemId ?? ''),

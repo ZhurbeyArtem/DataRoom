@@ -20,12 +20,13 @@ interface RoomCardProps {
 export function RoomCard({ room, onRename, onDelete }: RoomCardProps) {
   return (
     <div className="group relative rounded-xl border bg-card p-4 transition-colors hover:border-foreground/20">
-      {/* Посилання розтягнуте на всю картку, а меню лежить над ним:
-          так клік будь-де відкриває кімнату, але кнопка меню лишається клікабельною. */}
+      {/* The link is stretched across the whole card with the menu above it:
+          a click anywhere opens the room while the menu button stays
+          clickable. */}
       <Link
         to={paths.room(room.id)}
         className="absolute inset-0 rounded-xl"
-        aria-label={`Відкрити ${room.name}`}
+        aria-label={`Open ${room.name}`}
       />
 
       <div className="flex items-start justify-between gap-2">
@@ -41,7 +42,7 @@ export function RoomCard({ room, onRename, onDelete }: RoomCardProps) {
                   variant="ghost"
                   size="icon"
                   className="opacity-0 transition-opacity group-hover:opacity-100 data-[popup-open]:opacity-100"
-                  aria-label="Дії з кімнатою"
+                  aria-label="Room actions"
                 />
               }
             >
@@ -51,11 +52,11 @@ export function RoomCard({ room, onRename, onDelete }: RoomCardProps) {
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => onRename(room)}>
                 <Pencil className="size-4" />
-                Перейменувати
+                Rename
               </DropdownMenuItem>
               <DropdownMenuItem variant="destructive" onClick={() => onDelete(room)}>
                 <Trash2 className="size-4" />
-                Видалити
+                Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -67,7 +68,7 @@ export function RoomCard({ room, onRename, onDelete }: RoomCardProps) {
           {room.name}
         </div>
         <div className="mt-0.5 text-xs text-muted-foreground">
-          Створено {formatRelative(room.createdAt)}
+          Created {formatRelative(room.createdAt)}
         </div>
       </div>
     </div>

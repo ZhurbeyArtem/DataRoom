@@ -1,36 +1,40 @@
-# Деплой: Supabase + Render + Vercel
+# Deployment: Supabase + Render + Vercel
 
-Задача 21. Три сервіси, усі на безкоштовних тарифах:
+Three services, all on free tiers:
 
-| Що | Де | Чому саме там |
+| What | Where | Why there |
 | --- | --- | --- |
-| Postgres | Supabase | Проєкт уже є — там лежить бакет із файлами. Друга БД ні до чого. |
-| API (NestJS) | Render | Тримає довгоживучий процес: у нас у ньому cron-чистка й пул зʼєднань. |
-| Фронт (Vite SPA) | Vercel | Статика з CDN, нуль конфігурації для Vite. |
+| Postgres | Supabase | The project already exists — the file bucket lives there. A second database would be pointless. |
+| API (NestJS) | Render | Keeps a long-lived process: we run an in-process cron cleanup and a connection pool inside it. |
+| Frontend (Vite SPA) | Vercel | Static assets on a CDN, zero configuration for Vite. |
 
-Порядок жорсткий: **Supabase → Render → Vercel → повернутись у Render**.
-Останній крок потрібен, бо `WEB_ORIGIN` для CORS відомий лише після Vercel.
+The order is strict: **Supabase → Render → Vercel → back to Render.**
+The last step is needed because `WEB_ORIGIN` for CORS is only known after
+Vercel.
 
 ---
 
-## Крок 0. Підготувати репозиторій
+## Step 0. Prepare the repository
 
-Чотири зміни в коді, без яких нічого не збереться.
+Four changes without which nothing builds.
 
-**1. `apps/api/package.json` — скрипти збірки й старту:**
+**1. `apps/api/package.json` — build and start scripts:**
 
 ```json
 "build": "prisma generate && nest build",
 "start:prod": "prisma migrate deploy && node dist/main"
 ```
 
-`prisma generate` у збірці обовʼязковий: `src/generated/prisma` у `.gitignore`,
-тобто на сервері клієнта Prisma просто немає, доки його не згенерують.
+`prisma generate` in the build is mandatory: `src/generated/prisma` is
+gitignored, so on the server the Prisma client simply does not exist until it
+is generated.
 
-`prisma migrate deploy` у **старті**, а не у збірці: міграції мають виконуватись
-там, де є доступ до продакшн-БД, і рівно один раз на розгортання.
+`prisma migrate deploy` goes into **start**, not into the build: migrations
+must run where the production database is reachable, exactly once per
+deployment.
 
-**2. `apps/web/vercel.json`** — щоб прямий перехід на `/rooms/<id>` не давав 404:
+**2. `apps/web/vercel.json`** — so a direct visit to `/rooms/<id>` is not a
+404:
 
 ```json
 {
@@ -38,171 +42,182 @@
 }
 ```
 
-**3. `apps/api/.env.example`** — перелік змінних без значень; за ним заповнюються
-поля в Render.
+**3. `apps/api/.env.example`** — the list of variables without values; the
+Render fields are filled in from it.
 
-**4. `render.yaml`** — необовʼязковий: те саме можна натиснути в інтерфейсі.
-Якщо потрібен Infrastructure as Code, кладеться в корінь репозиторію.
+**4. `render.yaml`** — optional: the same thing can be clicked together in the
+dashboard. If you want infrastructure as code, it goes in the repository root.
 
 ---
 
-## Крок 1. Supabase: база даних
+## Step 1. Supabase: the database
 
-Бакет уже налаштований, потрібна тільки БД того самого проєкту.
+The bucket is already configured; only the database of the same project is
+needed.
 
 1. **Connection string.** Project Settings → Database → Connection string →
-   вкладка **Session pooler** (`aws-0-<регіон>.pooler.supabase.com`, порт `5432`).
+   the **Session pooler** tab (`aws-0-<region>.pooler.supabase.com`, port
+   `5432`).
 
-   > **Не беріть Transaction pooler (порт 6543).** `PrismaService` підключається
-   > з параметром запуску `options: '-c timezone=UTC'`, а пулер у режимі
-   > транзакцій такі параметри не пропускає — зʼєднання впаде з
-   > `unsupported startup parameter: options`. Без цього ж параметра всі дати
-   > в API зміщуються на величину поясу сесії. Session pooler пропускає його
-   > і при цьому доступний по IPv4, на відміну від прямого зʼєднання.
+   > **Do not take the Transaction pooler (port 6543).** `PrismaService`
+   > connects with the startup parameter `options: '-c timezone=UTC'`, and a
+   > pooler in transaction mode does not pass such parameters through — the
+   > connection fails with `unsupported startup parameter: options`. Without
+   > that parameter every date in the API shifts by the session's time zone
+   > offset. The session pooler passes it through and, unlike a direct
+   > connection, is reachable over IPv4.
 
-2. **Прогнати міграції** — один раз, локально:
+2. **Run the migrations** — once, locally:
 
    ```bash
-   cd apps/api && DATABASE_URL="<рядок з Supabase>" npx prisma migrate deploy
+   cd apps/api && DATABASE_URL="<string from Supabase>" npx prisma migrate deploy
    ```
 
-   Можна й не робити: `start:prod` виконає це саме сам при першому запуску
-   на Render. Локально — зручніше, бо помилку видно одразу, а не в логах.
+   This is optional: `start:prod` does it itself on the first boot on Render.
+   Doing it locally is more convenient, because an error shows up immediately
+   rather than in the logs.
 
-3. **Бакет.** Storage → `dataroom-files`: приватний, ліміт файлу 50 МБ
-   (той самий, що в `CreateUploadUrlDto`), дозволений тип `application/pdf`.
+3. **Bucket.** Storage → `dataroom-files`: private, 50 MB file size limit (the
+   same one as in `CreateUploadUrlDto`), allowed type `application/pdf`.
 
 ---
 
-## Крок 2. Render: API
+## Step 2. Render: the API
 
-**New → Web Service**, підключити репозиторій.
+**New → Web Service**, connect the repository.
 
-| Поле | Значення |
+| Field | Value |
 | --- | --- |
-| Root Directory | **порожньо** (корінь репозиторію) |
+| Root Directory | **empty** (repository root) |
 | Build Command | `npm ci --include=dev && npm run build --workspace apps/api` |
 | Start Command | `npm run start:prod --workspace apps/api` |
 | Health Check Path | `/docs` |
 
-Root Directory саме порожній: це npm-workspaces із **одним** `package-lock.json`
-у корені. З `apps/api` команда `npm ci` впаде — там немає lock-файлу.
+The root directory is empty on purpose: this is an npm workspaces monorepo
+with a **single** `package-lock.json` in the root. From `apps/api` the command
+`npm ci` fails — there is no lockfile there.
 
-> **Пастка `--include=dev`.** Ми ставимо `NODE_ENV=production` (без нього
-> refresh-cookie не отримає `secure`/`sameSite=none`), а `npm ci` при такому
-> `NODE_ENV` пропускає `devDependencies` — тобто ні `nest`, ні `prisma`.
-> Збірка падає з «nest: not found». Прапорець це скасовує.
+> **The `--include=dev` trap.** We set `NODE_ENV=production` (without it the
+> refresh cookie gets no `secure`/`sameSite=none`), and with that `NODE_ENV`
+> `npm ci` skips `devDependencies` — meaning neither `nest` nor `prisma`. The
+> build then dies with "nest: not found". The flag cancels that.
 
-**Змінні оточення:**
+**Environment variables:**
 
-| Змінна | Значення |
+| Variable | Value |
 | --- | --- |
-| `DATABASE_URL` | рядок Session pooler із кроку 1 |
-| `SUPABASE_URL` | `https://<проєкт>.supabase.co` |
+| `DATABASE_URL` | the session pooler string from step 1 |
+| `SUPABASE_URL` | `https://<project>.supabase.co` |
 | `SUPABASE_SECRET_KEY` | Project Settings → API keys → secret |
 | `SUPABASE_BUCKET` | `dataroom-files` |
-| `JWT_ACCESS_SECRET` | **новий** секрет, не з локального `.env` |
-| `JWT_REFRESH_SECRET` | **новий** секрет |
+| `JWT_ACCESS_SECRET` | a **new** secret, not the one from your local `.env` |
+| `JWT_REFRESH_SECRET` | another one |
 | `JWT_ACCESS_TTL` | `15m` |
 | `JWT_REFRESH_TTL` | `30d` |
 | `NODE_ENV` | `production` |
-| `WEB_ORIGIN` | тимчасово будь-що; справжнє значення — після кроку 3 |
-| `PORT` | не задавати, Render підставляє свій |
+| `WEB_ORIGIN` | anything for now; the real value comes after step 3 |
+| `PORT` | leave unset, Render supplies its own |
 
-Секрети згенерувати так:
+Generate the secrets with:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 ```
 
-Після деплою перевірити: `https://<сервіс>.onrender.com/docs` віддає Swagger.
+After the deploy, check that `https://<service>.onrender.com/docs` serves
+Swagger.
 
 ---
 
-## Крок 3. Vercel: фронт
+## Step 3. Vercel: the frontend
 
-**Add New → Project**, той самий репозиторій.
+**Add New → Project**, the same repository.
 
-| Поле | Значення |
+| Field | Value |
 | --- | --- |
 | Root Directory | `apps/web` |
 | Framework Preset | Vite |
-| Build Command | `npm run build` (за замовчуванням) |
-| Output Directory | `dist` (за замовчуванням) |
-| Змінна `VITE_API_URL` | `https://<сервіс>.onrender.com` |
+| Build Command | `npm run build` (default) |
+| Output Directory | `dist` (default) |
+| Variable `VITE_API_URL` | `https://<service>.onrender.com` |
 
-Vercel сам знайде кореневий lock-файл монорепозиторію й поставить залежності
-звідти — окремих налаштувань не треба.
+Vercel finds the monorepo's root lockfile and installs from there — no extra
+configuration needed.
 
-`VITE_API_URL` вшивається у бандл під час збірки, а не читається в рантаймі:
-щоб її змінити, потрібен новий деплой, а не перезапуск.
+`VITE_API_URL` is baked into the bundle at build time rather than read at
+runtime: changing it requires a new deployment, not a restart.
 
 ---
 
-## Крок 4. Звʼязати назад
+## Step 4. Wire it back
 
-Повернутись у Render і виставити `WEB_ORIGIN` = точний домен Vercel:
+Return to Render and set `WEB_ORIGIN` to the exact Vercel domain:
 
 ```
-https://<проєкт>.vercel.app
+https://<project>.vercel.app
 ```
 
-Без слеша в кінці. `main.ts` віддає цей рядок у `enableCors({ origin })`,
-а порівняння там посимвольне — зайвий слеш означає, що жоден запит із фронта
-не пройде. Зберегти → Render перезапустить сервіс сам.
+No trailing slash. `main.ts` hands this string to `enableCors({ origin })`,
+and the comparison there is character by character — one extra slash means no
+request from the frontend gets through. Save, and Render restarts the service
+itself.
 
 ---
 
-## Крок 5. Перевірити на бойових адресах
+## Step 5. Verify on the live URLs
 
-Повний сценарій, у звичайному вікні:
+The full scenario, in a normal window:
 
-1. Реєстрація нового акаунта → потрапляємо в список кімнат.
-2. Створити кімнату, всередині — папку.
-3. Завантажити PDF, дочекатись «готово», відкрити в переглядачі.
-4. Поділитися посиланням, відкрити його в **анонімному** вікні.
-5. Відкликати доступ, оновити анонімне вікно → «Цей матеріал більше недоступний».
-6. Видалити файл, знайти його в кошику, відновити.
-7. Перезавантажити сторінку — сесія має піднятись без повторного входу.
+1. Sign up with a new account → you land in the room list.
+2. Create a room, and a folder inside it.
+3. Upload a PDF, wait for "done", open it in the viewer.
+4. Share a link, open it in an **incognito** window.
+5. Revoke access, refresh the incognito window → "This content is no longer
+   available".
+6. Delete a file, find it in the trash, restore it.
+7. Reload the page — the session must come back without signing in again.
 
-Пункт 7 найважливіший: саме він ловить проблему з cookie.
-
----
-
-## Де це типово ламається
-
-**CORS.** `WEB_ORIGIN` не збігається з доменом Vercel символ у символ. Прев'ю-деплої
-Vercel мають інші домени (`<проєкт>-<хеш>.vercel.app`) і в CORS не пройдуть —
-перевіряти треба на продакшн-домені.
-
-**Refresh-cookie.** Фронт і API на різних доменах, тому cookie крос-сайтова:
-потрібні `secure: true` і `sameSite: 'none'`. У коді це вже є, але **тільки
-за `NODE_ENV=production`** — якщо змінну забути, cookie не збережеться,
-і після перезавантаження сторінки користувача викине на вхід. Симптом рівно
-такий: вхід працює, а перезавантаження — ні.
-
-Окремо: браузери поступово ріжуть сторонні cookie. Якщо колись перестане
-працювати — лікується спільним доменом (`app.example.com` і `api.example.com`),
-а не змінами в коді.
-
-**Холодний старт.** Безкоштовний Render присипляє сервіс після 15 хвилин
-простою; перший запит після сну займає до 50 секунд. Саме заради цього в задачі
-20 скрізь стоять скелетони — застосунок виглядає повільним, а не зламаним.
-Згадати в README.
-
-**Фонова чистка спить разом із сервісом.** `CleanupService` — cron усередині
-процесу API. На платному тарифі це не проблема, на безкоштовному прогін
-відбудеться лише тоді, коли сервіс не спить. Наслідок нестрашний: незавершені
-аплоади й старі логи проживуть довше за годину й два тижні відповідно.
-
-**`prisma generate` забутий у збірці.** Падає на старті з «Cannot find module
-./generated/prisma» — саме тому він у `build`, а не десь окремо.
+Step 7 matters most: it is the one that catches the cookie problem.
 
 ---
 
-## Після деплою
+## Where this typically breaks
 
-- Внести бойові URL у README (задача 22) разом із демо-акаунтом для рев'ювера.
-- Згадати в README відомі обмеження: холодний старт, пошук лише для власника
-  кімнати, повтор аплоаду з суфіксом «(1)», три `high` у `npm audit` через CLI
-  Prisma.
+**CORS.** `WEB_ORIGIN` not matching the Vercel domain character for
+character. Vercel preview deployments get different domains
+(`<project>-<hash>.vercel.app`) and will not pass CORS — test on the
+production domain.
+
+**The refresh cookie.** The frontend and the API sit on different domains, so
+the cookie is cross-site: it needs `secure: true` and `sameSite: 'none'`. The
+code already does that, but **only when `NODE_ENV=production`** — forget the
+variable and the cookie is not stored, so reloading the page bounces the user
+to sign-in. The symptom is exactly that: signing in works, reloading does not.
+
+Separately: browsers are progressively restricting third-party cookies. If
+this ever stops working, the cure is a shared domain
+(`app.example.com` and `api.example.com`), not a code change.
+
+**Cold start.** The free Render tier puts a service to sleep after 15 minutes
+of inactivity; the first request after that takes up to 50 seconds. This is
+exactly why the app has skeletons everywhere — it looks slow rather than
+broken. Worth a line in the README.
+
+**Background cleanup sleeps with the service.** `CleanupService` is a cron
+inside the API process. On a paid tier that is fine; on the free one a sweep
+only happens while the service is awake. The consequence is mild: unfinished
+uploads and old logs live longer than an hour and two weeks respectively.
+
+**`prisma generate` forgotten in the build.** Fails at startup with "Cannot
+find module ./generated/prisma" — which is precisely why it lives in `build`
+rather than somewhere separate.
+
+---
+
+## After the deployment
+
+- Put the live URLs into the README together with a demo account for the
+  reviewer.
+- Mention the known limitations in the README: cold start, search being
+  owner-only, upload retries producing a "(1)" suffix, and the three `high`
+  findings in `npm audit` coming from the Prisma CLI.

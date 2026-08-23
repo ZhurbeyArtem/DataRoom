@@ -1,9 +1,9 @@
 import { env } from '@/config/env';
 
 /**
- * Access-токен живе в памʼяті модуля, а не в localStorage: усе, що лежить
- * у сховищі, доступне будь-якому скрипту на сторінці. Після перезавантаження
- * сесія піднімається з httpOnly-cookie через /auth/refresh.
+ * The access token lives in module memory rather than localStorage:
+ * anything in storage is readable by any script on the page. After a reload
+ * the session is restored from the httpOnly cookie via /auth/refresh.
  */
 let accessToken: string | null = null;
 let shareToken: string | null = null;
@@ -16,14 +16,14 @@ export function getAccessToken(): string | null {
   return accessToken;
 }
 
-/** Публічний глядач ходить у ті самі ендпоінти, лише з іншим заголовком. */
+/** A public viewer hits the same endpoints, only with a different header. */
 export function setShareToken(token: string | null): void {
   shareToken = token;
 }
 
 export class ApiError extends Error {
-  // Явні поля, а не параметри-властивості: увімкнено erasableSyntaxOnly,
-  // тобто TypeScript має стиратися в JS без залишку.
+  // Explicit fields rather than parameter properties: erasableSyntaxOnly is
+  // on, i.e. TypeScript must erase into JS without a trace.
   readonly status: number;
   readonly code: string;
   readonly requestId?: string;
@@ -36,7 +36,7 @@ export class ApiError extends Error {
     this.requestId = requestId;
   }
 
-  /** 404 у нас означає і «немає», і «немає доступу» — це навмисно. */
+  /** A 404 here means both "gone" and "not allowed" — deliberately so. */
   get isNotFound(): boolean {
     return this.status === 404;
   }
@@ -52,7 +52,7 @@ interface RequestOptions {
   signal?: AbortSignal;
 }
 
-/** Викликається, коли оновити сесію не вдалося: застосунок має вийти. */
+/** Called when the session could not be refreshed: the app must sign out. */
 let onSessionLost: (() => void) | null = null;
 
 export function setSessionLostHandler(handler: () => void): void {
@@ -62,8 +62,8 @@ export function setSessionLostHandler(handler: () => void): void {
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const response = await send(path, options);
 
-  // 401 означає, що протух короткий access-токен. Пробуємо оновити його
-  // мовчки: refresh лежить у httpOnly-cookie, тож користувач нічого не бачить.
+  // A 401 means the short-lived access token expired. Refresh it silently:
+  // the refresh token sits in an httpOnly cookie, so the user sees nothing.
   if (response.status === 401 && !path.startsWith('/auth/')) {
     if (!(await refreshSession())) {
       onSessionLost?.();
@@ -72,9 +72,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
     const retried = await send(path, options);
 
-    // Свіжий токен і знову 401 — оновлювати більше нічого: сесію
-    // відкликали на сервері. Без цього застосунок лишався б «залогіненим»
-    // із мертвим токеном і сипав помилками замість екрана входу.
+    // A fresh token and still a 401 — there is nothing left to refresh: the
+    // session was revoked on the server. Without this the app would stay
+    // "signed in" with a dead token and spray errors instead of showing the
+    // sign-in screen.
     if (retried.status === 401) onSessionLost?.();
 
     return unwrap<T>(retried);
@@ -105,14 +106,14 @@ interface RefreshedSession {
 let refreshing: Promise<RefreshedSession | null> | null = null;
 
 /**
- * Єдина точка оновлення сесії — і для відновлення при старті, і для повтору
- * після 401.
+ * The single place a session is refreshed — both for restoring it at
+ * startup and for retrying after a 401.
  *
- * Одночасність тут не оптимізація, а вимога коректності: refresh-токен
- * РОТУЄТЬСЯ, тобто кожне успішне оновлення відкликає попередній токен.
- * Два паралельні виклики означають, що другий піде вже відкликаним токеном,
- * отримає 401 — і застосунок вирішить, що сесії немає, хоча перший виклик
- * щойно її успішно оновив.
+ * Deduplication here is not an optimisation but a correctness requirement:
+ * the refresh token ROTATES, so every successful refresh revokes the
+ * previous one. Two parallel calls mean the second one travels with an
+ * already revoked token, gets a 401 — and the app concludes there is no
+ * session, even though the first call had just refreshed it successfully.
  */
 export function refreshSession(): Promise<RefreshedSession | null> {
   refreshing ??= fetch(`${env.API_URL}/auth/refresh`, {
@@ -144,13 +145,13 @@ async function unwrap<T>(response: Response): Promise<T> {
     throw new ApiError(
       response.status,
       payload?.code ?? 'UNKNOWN',
-      payload?.message ?? 'Щось пішло не так',
+      payload?.message ?? 'Something went wrong',
       payload?.requestId,
     );
   }
 
-  // Сторінки приходять як { data, nextCursor } і не загорнуті вдруге,
-  // решта — як { data: … }.
+  // Pages arrive as { data, nextCursor } and are not wrapped twice;
+  // everything else comes as { data: … }.
   if (payload && typeof payload === 'object' && 'nextCursor' in payload) {
     return payload as T;
   }

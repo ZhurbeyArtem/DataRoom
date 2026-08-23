@@ -7,19 +7,19 @@ import { formatRelative } from '@/utils/format';
 import { useSharedWithMe } from '../hooks/use-shares';
 
 /**
- * Тут лише поіменні доступи: публічні посилання нікому конкретно не
- * адресовані, тож і в «поділилися зі мною» їм не місце.
+ * Named grants only: public links are not addressed to anyone in
+ * particular, so they have no place in "shared with me".
  */
 export function SharedWithMeList() {
   const shared = useSharedWithMe();
 
-  useDocumentTitle('Поділилися зі мною');
+  useDocumentTitle('Shared with me');
 
   return (
     <div>
-      <h1 className="text-2xl font-medium">Поділилися зі мною</h1>
+      <h1 className="text-2xl font-medium">Shared with me</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Документи, до яких вам надали доступ за email
+        Documents you were given access to by email
       </p>
 
       <div className="mt-6">
@@ -36,9 +36,9 @@ export function SharedWithMeList() {
             <div className="flex size-12 items-center justify-center rounded-full bg-muted">
               <Inbox className="size-6 text-muted-foreground" />
             </div>
-            <h2 className="mt-4 font-medium">Поки нічого немає</h2>
+            <h2 className="mt-4 font-medium">Nothing here yet</h2>
             <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-              Тут зʼявиться те, до чого вам нададуть доступ за вашим email
+              Anything shared with your email address will show up here
             </p>
           </div>
         )}
@@ -64,7 +64,7 @@ export function SharedWithMeList() {
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium">{entry.item.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      Доступ надано {formatRelative(entry.createdAt)}
+                      Shared {formatRelative(entry.createdAt)}
                     </div>
                   </div>
                 </Link>

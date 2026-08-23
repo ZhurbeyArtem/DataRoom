@@ -1,11 +1,11 @@
 import { ApiError } from '@/lib/api-client';
 
 /**
- * Повідомлення беремо з відповіді бекенду: він уже віддає їх українською
- * і з потрібним рівнем деталізації — «Невірний email або пароль» замість
- * технічного «401».
+ * Messages come from the backend response: it already returns them at the
+ * right level of detail — "Invalid email or password" rather than a bare
+ * technical "401".
  */
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message;
-  return 'Немає звʼязку з сервером. Перевір підключення';
+  return 'No connection to the server. Check your network';
 }

@@ -3,8 +3,8 @@ import { itemsApi } from '../api/items';
 import { itemKey, itemsKey } from './use-items';
 
 /**
- * Інвалідуємо лише ті папки, вміст яких реально змінився. Скидати весь кеш
- * означало б перезавантажувати екрани, яких зміна не торкнулась.
+ * Only the folders whose contents actually changed are invalidated. Wiping
+ * the whole cache would mean reloading screens the change never touched.
  */
 function useRefreshFolders() {
   const client = useQueryClient();
@@ -22,8 +22,9 @@ export function useCreateFolder() {
   return useMutation({
     mutationFn: (input: { parentId: string; name: string; scopeId: string }) =>
       itemsApi.createFolder({ parentId: input.parentId, name: input.name }),
-    // scopeId — те, під яким ключем лежить відкритий зараз лістинг: для кореня
-    // це id кімнати, а не папки, бо саме так ми його й запитували.
+    // scopeId is the key the currently open listing sits under: for a root
+    // that is the room id rather than a folder id, because that is how it was
+    // requested.
     onSuccess: (_item, input) => refresh(input.scopeId),
   });
 }
@@ -50,7 +51,7 @@ export function useMoveItem() {
     mutationFn: (input: { id: string; to: string; scopeId: string }) =>
       itemsApi.move(input.id, input.to),
     onSuccess: (_item, input) => {
-      // Змінився вміст обох папок — і звідки взяли, і куди поклали.
+      // Both folders changed — the one it came from and the one it went to.
       refresh(input.scopeId, input.to);
       void client.invalidateQueries({ queryKey: itemKey(input.id) });
     },
@@ -67,8 +68,8 @@ export function useDeleteItem() {
 }
 
 /**
- * Статистика піддерева тягнеться лише коли діалог видалення відкритий:
- * запитувати її для кожного рядка списку було б марною роботою.
+ * Subtree stats are fetched only while the delete dialog is open: asking for
+ * them per row of the listing would be wasted work.
  */
 export function useSubtreeStats(itemId: string | null) {
   return useQuery({

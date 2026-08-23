@@ -1,11 +1,11 @@
 /**
- * Оточення читається в одному місці й падає одразу на старті, якщо чогось
- * бракує. Інакше про порожній VITE_API_URL дізнаєшся з незрозумілої мережевої
- * помилки посеред роботи.
+ * The environment is read in one place and fails at startup if something is
+ * missing. Otherwise an empty VITE_API_URL surfaces as a cryptic network
+ * error in the middle of the app.
  */
 function required(name: string, value: string | undefined): string {
   if (!value) {
-    throw new Error(`Не задано ${name}. Перевір apps/web/.env.local`);
+    throw new Error(`${name} is not set. Check apps/web/.env.local`);
   }
   return value;
 }

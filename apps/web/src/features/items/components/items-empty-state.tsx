@@ -6,24 +6,24 @@ export type EmptyVariant = 'empty-room' | 'empty-folder' | 'no-results';
 const VARIANTS: Record<EmptyVariant, { icon: ReactNode; title: string; hint: string }> = {
   'empty-room': {
     icon: <Inbox className="size-6 text-muted-foreground" />,
-    title: 'Кімната порожня',
-    hint: 'Створіть папку або перетягніть сюди PDF-файли, щоб почати',
+    title: 'This room is empty',
+    hint: 'Create a folder or drop PDF files here to get started',
   },
   'empty-folder': {
     icon: <FolderOpen className="size-6 text-muted-foreground" />,
-    title: 'Ця папка порожня',
-    hint: 'Створіть підпапку або завантажте файли',
+    title: 'This folder is empty',
+    hint: 'Create a subfolder or upload files',
   },
   'no-results': {
     icon: <SearchX className="size-6 text-muted-foreground" />,
-    title: 'Нічого не знайдено',
-    hint: 'Спробуйте інший запит',
+    title: 'Nothing found',
+    hint: 'Try a different query',
   },
 };
 
 /**
- * Три різні порожні стани, а не один спільний: «кімната порожня» і
- * «нічого не знайдено» вимагають від користувача різних дій.
+ * Three distinct empty states rather than one shared one: "room is empty"
+ * and "nothing found" call for different actions from the user.
  */
 export function ItemsEmptyState({
   variant,
@@ -36,9 +36,9 @@ export function ItemsEmptyState({
 }) {
   const { icon, title, hint } = VARIANTS[variant];
 
-  // Глядачеві не пропонуємо створювати папки: він цього не може, і підказка
-  // читалася б як зламана кнопка, якої немає.
-  const text = readOnly ? 'Тут поки нічого немає' : hint;
+  // A viewer is not invited to create folders: they cannot, and the hint
+  // would read like a broken button that is not there.
+  const text = readOnly ? 'There is nothing here yet' : hint;
 
   return (
     <div className="flex flex-col items-center rounded-xl border border-dashed py-16 text-center">

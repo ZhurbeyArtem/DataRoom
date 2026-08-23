@@ -33,8 +33,8 @@ export function CreateRoomDialog({ open, onOpenChange }: NameDialogProps) {
   const create = useCreateRoom();
   const [name, setName] = useState('');
 
-  // Поле скидається при кожному відкритті: інакше друга кімната починалася б
-  // з назви першої.
+  // The field resets on every open: otherwise a second room would start out
+  // holding the first one's name.
   useEffect(() => {
     if (open) setName('');
   }, [open]);
@@ -52,9 +52,9 @@ export function CreateRoomDialog({ open, onOpenChange }: NameDialogProps) {
       <DialogContent>
         <form onSubmit={submit}>
           <DialogHeader>
-            <DialogTitle>Нова кімната</DialogTitle>
+            <DialogTitle>New data room</DialogTitle>
             <DialogDescription>
-              Кімната належить вам і невидима іншим, доки ви не поділитесь.
+              The room is yours alone and invisible to others until you share it.
             </DialogDescription>
           </DialogHeader>
 
@@ -62,7 +62,7 @@ export function CreateRoomDialog({ open, onOpenChange }: NameDialogProps) {
             <Input
               autoFocus
               maxLength={MAX_NAME}
-              placeholder="Наприклад, Acme Acquisition"
+              placeholder="For example, Acme Acquisition"
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
@@ -70,10 +70,10 @@ export function CreateRoomDialog({ open, onOpenChange }: NameDialogProps) {
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Скасувати
+              Cancel
             </Button>
             <Button type="submit" loading={create.isPending} disabled={!trimmed}>
-              {create.isPending ? 'Створюємо…' : 'Створити'}
+              {create.isPending ? 'Creating…' : 'Create'}
             </Button>
           </DialogFooter>
         </form>
@@ -110,7 +110,7 @@ export function RenameRoomDialog({
       <DialogContent>
         <form onSubmit={submit}>
           <DialogHeader>
-            <DialogTitle>Перейменувати кімнату</DialogTitle>
+            <DialogTitle>Rename data room</DialogTitle>
           </DialogHeader>
 
           <div className="py-4">
@@ -124,12 +124,12 @@ export function RenameRoomDialog({
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Скасувати
+              Cancel
             </Button>
-            {/* Заблокована й на порожньому, і на незміненому імені: запит,
-                що нічого не міняє, не має відбуватися. */}
+            {/* Disabled on an empty name and on an unchanged one alike: a
+                request that changes nothing should not happen. */}
             <Button type="submit" loading={rename.isPending} disabled={!trimmed || unchanged}>
-              {rename.isPending ? 'Зберігаємо…' : 'Зберегти'}
+              {rename.isPending ? 'Saving…' : 'Save'}
             </Button>
           </DialogFooter>
         </form>
@@ -151,16 +151,16 @@ export function DeleteRoomDialog({
     <AlertDialog open={room !== null} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Видалити «{room?.name}»?</AlertDialogTitle>
+          <AlertDialogTitle>Delete “{room?.name}”?</AlertDialogTitle>
           <AlertDialogDescription>
-            Кімнату буде видалено разом з усіма папками, файлами та наданими
-            доступами. Це не можна скасувати — на відміну від видалення окремих
-            файлів, кімната не потрапляє в кошик.
+            The room will be deleted along with every folder, file and share
+            in it. This cannot be undone — unlike deleting individual files, a
+            room does not go to the trash.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         <AlertDialogFooter>
-          <AlertDialogCancel>Скасувати</AlertDialogCancel>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
             loading={remove.isPending}
             onClick={(event) => {
@@ -169,7 +169,7 @@ export function DeleteRoomDialog({
               remove.mutate(room.id, { onSuccess: () => onOpenChange(false) });
             }}
           >
-            {remove.isPending ? 'Видаляємо…' : 'Видалити'}
+            {remove.isPending ? 'Deleting…' : 'Delete'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

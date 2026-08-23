@@ -8,9 +8,9 @@ import { routeTree } from './routeTree.gen';
 const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
-  // Помилку всередині маршруту ловить бар'єр роутера, тому екран падіння
-  // задається і тут, і зовні — інакше маршрут показав би стандартний
-  // технічний вивід TanStack замість нашого.
+  // An error inside a route is caught by the router's own boundary, so the
+  // crash screen is wired up both here and outside — otherwise a route would
+  // show TanStack's default technical output instead of ours.
   defaultErrorComponent: ({ error }) => <ErrorScreen error={error} />,
 });
 
@@ -21,8 +21,8 @@ declare module '@tanstack/react-router' {
 }
 
 /**
- * Відновлення сесії живе всередині провайдерів: воно робить запит через
- * той самий http-клієнт, що й решта застосунку.
+ * Session restore lives inside the providers: it goes through the same http
+ * client as the rest of the app.
  */
 function Session() {
   useRestoreSession();

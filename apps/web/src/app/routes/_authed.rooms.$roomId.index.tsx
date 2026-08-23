@@ -16,8 +16,9 @@ export const Route = createFileRoute('/_authed/rooms/$roomId/')({
 });
 
 /**
- * Маршрут складає докупи дві фічі — оглядач елементів і діалог доступів.
- * Композиція живе тут саме тому, що фічі не імпортують одна одну.
+ * The route composes two features — the item browser and the share dialog.
+ * The composition lives here precisely because features never import each
+ * other.
  */
 function RoomRootPage() {
   const { roomId } = Route.useParams();
@@ -26,32 +27,34 @@ function RoomRootPage() {
   const [sharing, setSharing] = useState<ShareTarget | null>(null);
   const [query, setQuery] = useState('');
 
-  // Кімната є у власному списку — отже, ти власник. Якщо ні, ти потрапив сюди
-  // за іменним доступом: жодних дій, лише читання. Без цього отримувач гранту
-  // бачив би кнопки «Нова папка» й «Завантажити», які сервер усе одно відхилив би.
+  // The room is in your own list, therefore you own it. If it is not, you
+  // arrived here through a named grant: no actions, read only. Without this
+  // a grantee would see "New folder" and "Upload" buttons that the server
+  // would reject anyway.
   const isOwner = rooms.isSuccess && room !== undefined;
   const searching = query.trim().length > 0;
 
-  // Поки шукаємо, оглядача папки в дереві немає — заголовок вкладки нікому
-  // ставити, і він падав би до типового «Data Room».
-  useDocumentTitle(searching && room ? `Пошук · ${room.name}` : undefined);
+  // While searching there is no folder view in the tree — nobody sets the
+  // tab title, and it would fall back to the generic "Data Room".
+  useDocumentTitle(searching && room ? `Search · ${room.name}` : undefined);
 
   return (
     <>
-      {/* Пошук і кошик доступні лише власнику: обидва працюють по всій
-          кімнаті, а глядач має бачити рівно те, чим із ним поділилися. */}
+      {/* Search and trash are owner-only: both work across the whole room,
+          while a viewer must see exactly what was shared with them. */}
       {isOwner && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <SearchInput value={query} onChange={setQuery} />
 
-          {/* Посилання зі стилями кнопки, а не компонент Button: він лишив би
-              семантику <button>, і читалка оголосила б посилання кнопкою. */}
+          {/* A link styled as a button rather than the Button component:
+              that would keep <button> semantics and a screen reader would
+              announce the link as a button. */}
           <Link
             to={paths.trash(roomId)}
             className={buttonVariants({ variant: 'ghost', size: 'sm' })}
           >
             <Trash2 className="size-4" />
-            Кошик
+            Trash
           </Link>
         </div>
       )}

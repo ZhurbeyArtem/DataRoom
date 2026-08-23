@@ -13,7 +13,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Реєстрація за email і паролем */
+        /** Sign up with email and password */
         post: operations["AuthController_register"];
         delete?: never;
         options?: never;
@@ -30,7 +30,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Вхід за email і паролем */
+        /** Sign in with email and password */
         post: operations["AuthController_login"];
         delete?: never;
         options?: never;
@@ -47,7 +47,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Новий access-токен за refresh-cookie */
+        /** New access token from the refresh cookie */
         post: operations["AuthController_refresh"];
         delete?: never;
         options?: never;
@@ -64,7 +64,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Вихід і відкликання сесії */
+        /** Sign out and revoke the session */
         post: operations["AuthController_logout"];
         delete?: never;
         options?: never;
@@ -79,7 +79,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Поточний користувач */
+        /** Current user */
         get: operations["AuthController_me"];
         put?: never;
         post?: never;
@@ -96,10 +96,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Мої кімнати */
+        /** My data rooms */
         get: operations["DataRoomsController_list"];
         put?: never;
-        /** Створити кімнату разом із кореневою папкою */
+        /** Create a data room together with its root folder */
         post: operations["DataRoomsController_create"];
         delete?: never;
         options?: never;
@@ -114,15 +114,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Кімната за id */
+        /** Data room by id */
         get: operations["DataRoomsController_get"];
         put?: never;
         post?: never;
-        /** Видалити кімнату з усім вмістом */
+        /** Delete a data room with everything in it */
         delete: operations["DataRoomsController_remove"];
         options?: never;
         head?: never;
-        /** Перейменувати кімнату */
+        /** Rename a data room */
         patch: operations["DataRoomsController_rename"];
         trace?: never;
     };
@@ -133,7 +133,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Вміст папки або кореня кімнати */
+        /** Contents of a folder or of a room root */
         get: operations["ItemsController_list"];
         put?: never;
         post?: never;
@@ -150,7 +150,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Вміст кошика кімнати; лише власник */
+        /** Trash contents of a room; owner only */
         get: operations["ItemsController_trash"];
         put?: never;
         post?: never;
@@ -167,7 +167,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Пошук за іменем у межах кімнати; лише власник */
+        /** Search by name within a room; owner only */
         get: operations["ItemsController_search"];
         put?: never;
         post?: never;
@@ -184,15 +184,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Елемент разом із ланцюжком предків */
+        /** An item together with its ancestor chain */
         get: operations["ItemsController_get"];
         put?: never;
         post?: never;
-        /** Перемістити в кошик разом із піддеревом */
+        /** Move to trash together with the subtree */
         delete: operations["ItemsController_remove"];
         options?: never;
         head?: never;
-        /** Перейменувати; конфлікт імені розвʼязується суфіксом */
+        /** Rename; a name clash is resolved with a suffix */
         patch: operations["ItemsController_rename"];
         trace?: never;
     };
@@ -203,7 +203,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Розмір і кількість елементів усього піддерева */
+        /** Total size and item count of the whole subtree */
         get: operations["ItemsController_stats"];
         put?: never;
         post?: never;
@@ -222,7 +222,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Створити папку */
+        /** Create a folder */
         post: operations["ItemsController_createFolder"];
         delete?: never;
         options?: never;
@@ -239,7 +239,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Перемістити в іншу папку */
+        /** Move into another folder */
         post: operations["ItemsController_move"];
         delete?: never;
         options?: never;
@@ -256,7 +256,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Відновити з кошика; лише власник */
+        /** Restore from the trash; owner only */
         post: operations["ItemsController_restore"];
         delete?: never;
         options?: never;
@@ -273,7 +273,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Крок 1: підписаний URL і рядок у статусі PENDING */
+        /** Step 1: a signed URL and a row in PENDING status */
         post: operations["UploadsController_createUploadUrl"];
         delete?: never;
         options?: never;
@@ -290,7 +290,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Крок 3: звірка зі сховищем і перехід у READY */
+        /** Step 3: verification against storage and transition to READY */
         post: operations["UploadsController_confirm"];
         delete?: never;
         options?: never;
@@ -305,7 +305,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Підписане посилання на читання, TTL 60 с */
+        /** Signed read link, 60-second TTL */
         get: operations["UploadsController_downloadUrl"];
         put?: never;
         post?: never;
@@ -322,7 +322,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Елемент, на який видано публічне посилання */
+        /** The item a public link points at */
         get: operations["SharesController_target"];
         put?: never;
         post?: never;
@@ -339,10 +339,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Активні доступи до елемента */
+        /** Active shares of an item */
         get: operations["SharesController_list"];
         put?: never;
-        /** Поділитися: публічне посилання або поіменний доступ */
+        /** Share: a public link or a named grant */
         post: operations["SharesController_create"];
         delete?: never;
         options?: never;
@@ -360,7 +360,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Відкликати доступ */
+        /** Revoke a share */
         delete: operations["SharesController_revoke"];
         options?: never;
         head?: never;
@@ -374,7 +374,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Те, до чого мені надали доступ поіменно */
+        /** What has been shared with me by name */
         get: operations["SharesController_sharedWithMe"];
         put?: never;
         post?: never;
@@ -392,7 +392,7 @@ export interface components {
             /** @example artem@acme.com */
             email: string;
             password: string;
-            /** @example Артем */
+            /** @example Artem */
             name: string;
         };
         LoginDto: {
@@ -417,7 +417,7 @@ export interface components {
             name: string;
         };
         MoveItemDto: {
-            /** @description Папка призначення */
+            /** @description Destination folder */
             targetParentId: string;
         };
         CreateUploadUrlDto: {
@@ -432,9 +432,9 @@ export interface components {
         ShareType: "PUBLIC_LINK" | "USER_GRANT";
         CreateShareDto: {
             type: components["schemas"]["ShareType"];
-            /** @description Обовʼязковий для USER_GRANT */
+            /** @description Required for USER_GRANT */
             granteeEmail?: string;
-            /** @description ISO-дата; порожньо = безстроково */
+            /** @description ISO date; empty means never expires */
             expiresAt?: string;
         };
     };
@@ -641,12 +641,12 @@ export interface operations {
     ItemsController_list: {
         parameters: {
             query?: {
-                /** @description Курсор із попередньої сторінки */
+                /** @description Cursor from the previous page */
                 cursor?: string;
                 limit?: number;
-                /** @description Папка, вміст якої показуємо */
+                /** @description Folder whose contents to list */
                 parentId?: string;
-                /** @description Кімната; обовʼязкова, якщо parentId не задано */
+                /** @description Data room; required when parentId is omitted */
                 dataRoomId?: string;
             };
             header?: never;
@@ -685,10 +685,10 @@ export interface operations {
     ItemsController_search: {
         parameters: {
             query: {
-                /** @description Курсор із попередньої сторінки */
+                /** @description Cursor from the previous page */
                 cursor?: string;
                 limit?: number;
-                /** @description Пошук іде по всій кімнаті, а не по одній папці */
+                /** @description Search covers the whole room, not a single folder */
                 dataRoomId: string;
                 q: string;
             };

@@ -25,15 +25,15 @@ import type { ShareTarget } from '@/types/share-target';
 import { useCreateShare, useRevokeShare, useShares } from '../hooks/use-shares';
 
 const KIND_LABEL: Record<ShareTarget['kind'], string> = {
-  room: 'кімнатою',
-  folder: 'папкою',
-  file: 'файлом',
+  room: 'data room',
+  folder: 'folder',
+  file: 'file',
 };
 
 const EXPIRY_OPTIONS = [
-  { value: 'never', label: 'Безстроково' },
-  { value: '24h', label: '24 години' },
-  { value: '7d', label: '7 днів' },
+  { value: 'never', label: 'Never expires' },
+  { value: '24h', label: '24 hours' },
+  { value: '7d', label: '7 days' },
 ];
 
 function expiryToIso(value: string): string | undefined {
@@ -58,13 +58,13 @@ export function ShareDialog({
     <Dialog open={target !== null} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          {/* Заголовок називає рівень конкретно: переплутати, чим саме
-              ділишся, найлегше саме тут. */}
+          {/* The title names the level explicitly: this is the easiest place
+              to lose track of what exactly is being shared. */}
           <DialogTitle className="truncate">
-            Поділитися {target ? KIND_LABEL[target.kind] : ''} «{target?.name}»
+            Share {target ? KIND_LABEL[target.kind] : ''} “{target?.name}”
           </DialogTitle>
           <DialogDescription>
-            Отримувач бачить вміст лише для читання, включно з усім вкладеним
+            The recipient gets read-only access, including everything nested
           </DialogDescription>
         </DialogHeader>
 
@@ -97,7 +97,7 @@ function PublicLinkSection({ itemId, link }: { itemId: string; link?: Share }) {
   async function copy() {
     await navigator.clipboard.writeText(url);
     setCopied(true);
-    toast.success('Посилання скопійовано');
+    toast.success('Link copied');
     setTimeout(() => setCopied(false), 2000);
   }
 
@@ -105,14 +105,14 @@ function PublicLinkSection({ itemId, link }: { itemId: string; link?: Share }) {
     <section className="space-y-2">
       <h3 className="flex items-center gap-2 text-sm font-medium">
         <Link2 className="size-4" />
-        Публічне посилання
+        Public link
       </h3>
 
       {link ? (
         <>
           <div className="flex gap-2">
             <Input readOnly value={url} className="font-mono text-xs" />
-            <Button variant="outline" size="icon" aria-label="Копіювати" onClick={copy}>
+            <Button variant="outline" size="icon" aria-label="Copy" onClick={copy}>
               {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
             </Button>
           </div>
@@ -120,8 +120,8 @@ function PublicLinkSection({ itemId, link }: { itemId: string; link?: Share }) {
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">
               {link.expiresAt
-                ? `Діє до ${new Date(link.expiresAt).toLocaleString('uk')}`
-                : 'Діє безстроково'}
+                ? `Valid until ${new Date(link.expiresAt).toLocaleString('en')}`
+                : 'Never expires'}
             </p>
             <Button
               variant="ghost"
@@ -129,22 +129,28 @@ function PublicLinkSection({ itemId, link }: { itemId: string; link?: Share }) {
               loading={revoke.isPending}
               onClick={() =>
                 revoke.mutate(link.id, {
-                  onSuccess: () => toast.success('Посилання вимкнено'),
+                  onSuccess: () => toast.success('Link turned off'),
                   onError: (error) => toast.error(errorMessage(error)),
                 })
               }
             >
-              Вимкнути
+              Turn off
             </Button>
           </div>
         </>
       ) : (
         <div className="flex gap-2">
-          {/* Base UI дозволяє null (скидання вибору), а в нас завжди є
-              значення за замовчуванням — «безстроково». */}
+          {/* Base UI allows null (clearing the selection), while we always
+              have a default — "never expires". */}
           <Select value={expiry} onValueChange={(value) => setExpiry(value ?? 'never')}>
             <SelectTrigger className="w-40">
-              <SelectValue />
+              {/* Base UI renders the raw value by default, and ours are
+                  machine-friendly ("never", "24h") — map back to the label. */}
+              <SelectValue>
+                {(value) =>
+                  EXPIRY_OPTIONS.find((option) => option.value === value)?.label ?? value
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {EXPIRY_OPTIONS.map((option) => (
@@ -164,7 +170,7 @@ function PublicLinkSection({ itemId, link }: { itemId: string; link?: Share }) {
               )
             }
           >
-            Створити посилання
+            Create link
           </Button>
         </div>
       )}
@@ -187,7 +193,7 @@ function GrantsSection({ itemId, grants }: { itemId: string; grants: Share[] }) 
       {
         onSuccess: () => {
           setEmail('');
-          toast.success(`Доступ надано ${trimmed}`);
+          toast.success(`Access granted to ${trimmed}`);
         },
         onError: (error) => toast.error(errorMessage(error)),
       },
@@ -198,7 +204,7 @@ function GrantsSection({ itemId, grants }: { itemId: string; grants: Share[] }) 
     <section className="space-y-2">
       <h3 className="flex items-center gap-2 text-sm font-medium">
         <Mail className="size-4" />
-        Доступ за email
+        Access by email
       </h3>
 
       <form onSubmit={submit} className="flex gap-2">
@@ -214,15 +220,15 @@ function GrantsSection({ itemId, grants }: { itemId: string; grants: Share[] }) 
           loading={create.isPending}
           disabled={!email.trim()}
         >
-          Надати
+          Grant
         </Button>
       </form>
 
-      {/* Не декоративний текст: без нього поведінка виглядає як несправність —
-          людина каже «мені нічого не прийшло», хоча доступ уже видано. */}
+      {/* Not decorative copy: without it the behaviour looks like a fault —
+          people say "nothing arrived" although access is already granted. */}
       <p className="text-xs text-muted-foreground">
-        Якщо в цієї людини ще немає акаунта, доступ спрацює одразу після її
-        реєстрації з цим email
+        If this person has no account yet, access starts working as soon as
+        they sign up with this email
       </p>
 
       {grants.length > 0 && (
@@ -233,11 +239,11 @@ function GrantsSection({ itemId, grants }: { itemId: string; grants: Share[] }) 
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label={`Відкликати доступ ${grant.granteeEmail}`}
+                aria-label={`Revoke access for ${grant.granteeEmail}`}
                 disabled={revoke.isPending}
                 onClick={() =>
                   revoke.mutate(grant.id, {
-                    onSuccess: () => toast.success('Доступ відкликано'),
+                    onSuccess: () => toast.success('Access revoked'),
                     onError: (error) => toast.error(errorMessage(error)),
                   })
                 }

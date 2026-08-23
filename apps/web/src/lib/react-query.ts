@@ -5,12 +5,12 @@ export function createQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        // Саме це змушує екран глядача, у якого відкликали доступ, оновитися
-        // самому — щойно він поверне фокус на вкладку.
+        // This is what makes the screen of a viewer whose access was revoked
+        // refresh by itself, the moment they focus the tab again.
         refetchOnWindowFocus: true,
         staleTime: 30_000,
         retry: (failureCount, error) => {
-          // 404 у нас означає «немає або немає доступу» — повторювати марно.
+          // A 404 here means "gone or not allowed" — retrying is pointless.
           if (error instanceof ApiError && (error.isNotFound || error.isUnauthorized)) {
             return false;
           }

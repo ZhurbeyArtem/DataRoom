@@ -7,8 +7,8 @@ import { plural } from '@/utils/plural';
 import { useUploadStore, type UploadTask } from '../upload.store';
 
 /**
- * Панель живе в шарі застосунку, а не всередині папки: аплоад має
- * продовжуватись, коли користувач перейшов в іншу папку або кімнату.
+ * The panel lives in the app layer rather than inside the folder view:
+ * uploads must keep running when the user moves to another folder or room.
  */
 export function UploadPanel() {
   const tasks = useUploadStore((state) => state.tasks);
@@ -26,22 +26,22 @@ export function UploadPanel() {
       <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
         <div className="text-sm font-medium">
           {active
-            ? `Завантажено ${done} з ${tasks.length}`
+            ? `Uploaded ${done} of ${tasks.length}`
             : failed > 0
-              ? `Не вдалося: ${plural(failed, 'файл', 'файли', 'файлів')}`
-              : `Готово: ${plural(done, 'файл', 'файли', 'файлів')}`}
+              ? `Failed: ${plural(failed, 'file')}`
+              : `Done: ${plural(done, 'file')}`}
         </div>
 
         <div className="flex items-center gap-1">
           {!active && (
             <Button variant="ghost" size="sm" onClick={clearFinished}>
-              Прибрати
+              Clear
             </Button>
           )}
           <Button
             variant="ghost"
             size="icon"
-            aria-label={collapsed ? 'Розгорнути' : 'Згорнути'}
+            aria-label={collapsed ? 'Expand' : 'Collapse'}
             onClick={() => setCollapsed((value) => !value)}
           >
             {collapsed ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
@@ -60,7 +60,7 @@ export function UploadPanel() {
   );
 }
 
-/** Експортований заради story: чотири стани рядка інакше ніде не побачити. */
+/** Exported for the story: the row's four states are not visible anywhere else. */
 export function UploadRow({ task }: { task: UploadTask }) {
   const cancel = useUploadStore((state) => state.cancel);
   const retry = useUploadStore((state) => state.retry);
@@ -76,7 +76,7 @@ export function UploadRow({ task }: { task: UploadTask }) {
           <Button
             variant="ghost"
             size="icon"
-            aria-label={`Скасувати ${task.fileName}`}
+            aria-label={`Cancel ${task.fileName}`}
             onClick={() => cancel(task.id)}
           >
             <X className="size-3.5" />
@@ -85,7 +85,7 @@ export function UploadRow({ task }: { task: UploadTask }) {
           <Button
             variant="ghost"
             size="icon"
-            aria-label={`Повторити ${task.fileName}`}
+            aria-label={`Retry ${task.fileName}`}
             onClick={() => retry(task.id)}
           >
             <RotateCw className="size-3.5" />
@@ -116,14 +116,14 @@ export function UploadRow({ task }: { task: UploadTask }) {
 function statusLabel(task: UploadTask): string {
   switch (task.status) {
     case 'queued':
-      return 'у черзі';
+      return 'queued';
     case 'uploading':
       return `${Math.round(task.progress * 100)}%`;
     case 'done':
-      return 'готово';
+      return 'done';
     case 'canceled':
-      return 'скасовано';
+      return 'cancelled';
     case 'error':
-      return task.error ?? 'помилка';
+      return task.error ?? 'failed';
   }
 }

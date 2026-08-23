@@ -1,138 +1,143 @@
-# Стан роботи: Data Room MVP
+# Working state: Data Room MVP
 
-Документ для продовження після очищення контексту. Останній коміт на момент
-запису — `74a1c24`, гілка `master`.
+A document for picking the work back up after a context reset.
 
-## Що це
+## What this is
 
-Тестове завдання: MVP віртуальної кімнати даних (папки, файли, шаринг).
-Умова, дизайн і план лежать поруч:
+A take-home assignment: an MVP of a virtual data room (folders, files,
+sharing). It was built against a specification and a 22-task plan written in
+earlier planning sessions; those documents were working artifacts and are no
+longer kept in the repository. The code departs from that plan in places;
+every deviation is described below and in the commit messages.
 
-- Специфікація: `docs/superpowers/specs/2026-08-18-dataroom-design.md`
-- План на 22 задачі: `docs/superpowers/plans/2026-08-18-dataroom-mvp.md`
+## Done
 
-План — джерело правди щодо обсягу, але код місцями від нього відходить;
-усі відхилення описані нижче й у повідомленнях комітів.
+Backend (tasks 1–3, 5–10) and frontend (11–20) are **closed and verified in
+the browser**. The end-to-end scenario works: sign-up → room → folders → PDF
+upload → viewing → sharing by link and by email → public view → search →
+trash with restore.
 
-## Зроблено
+## Remaining
 
-Бекенд (задачі 1–3, 5–10) і фронтенд (11–20) — **закриті й перевірені
-в браузері**. Працює наскрізний сценарій: реєстрація → кімната → папки →
-аплоад PDF → перегляд → шаринг посиланням і поіменно → публічний перегляд →
-пошук → кошик із відновленням.
-
-## Лишилось
-
-| № | Задача | Потребує користувача |
+| # | Task | Needs the user |
 | --- | --- | --- |
-| 21 | Деплой: API на Render, фронт на Vercel, БД на Supabase | так: акаунти |
-| 22 | README (дизайн-рішення, ERD, How it scales, нотатка про AI) | ні |
+| 21 | Deployment: API on Render, frontend on Vercel, database on Supabase | yes: accounts |
+| 22 | README (design decisions, ERD, How it scales, AI note) | no |
 
-Задача 4 (вхід через Google) знята з обсягу рішенням від 23.08.2026.
+Task 4 (Google sign-in) was dropped from scope on 2026-08-23.
 
-## Як запустити
+## How to run it
 
 ```bash
-npm run dev:api    # http://localhost:3000, Swagger на /docs
+npm run dev:api    # http://localhost:3000, Swagger at /docs
 npm run dev:web    # http://localhost:5173
 ```
 
-БД — **локальний PostgreSQL 18**, база `dataroom`, рядок підключення
-в `apps/api/.env` (у git не потрапляє, пароль там уже заповнений).
-Supabase використовується **лише як сховище файлів**, бакет `dataroom-files`.
+The database is now the **Supabase Postgres** of the same project (session
+pooler, port 5432); the connection string lives in `apps/api/.env`, which is
+not committed. Supabase is also **the file storage**, bucket
+`dataroom-files`.
 
-Тестові акаунти: `demo@acme.com` і `mate@acme.com`, пароль в обох
-`password123`. У `demo` є кімната з деревом папок і файлами.
+There are no seeded demo accounts in this database: the local Postgres that
+held `demo@acme.com` was replaced by Supabase, which starts empty. Sign up
+through the UI, or create a demo account for the reviewer before submitting.
 
-Корисні команди в `apps/web`: `npm run typecheck`, `npm run lint`
-(oxlint + перевірка меж), `npm run boundaries`, `npm run api:types`
-(генерація типів зі Swagger, потрібен піднятий API).
+Useful commands in `apps/web`: `npm run typecheck`, `npm run lint`
+(oxlint + the boundary check), `npm run boundaries`, `npm run api:types`
+(type generation from Swagger, needs the API running).
 
-## Відхилення від плану, які треба знати
+## Deviations from the plan worth knowing
 
-**Prisma 7, а не 5.** Генератор `prisma-client` видає TypeScript
-у `src/generated/prisma`; рядок підключення живе в `prisma.config.ts`;
-рантайм працює через драйвер-адаптер `@prisma/adapter-pg`. У генераторі
-обовʼязково `moduleFormat = "cjs"` — інакше Node вантажить клієнт як ESM
-і падає. Моделі імпортуються не з `@prisma/client`, а з барелю
-`src/common/prisma/client.ts`.
+**Prisma 7, not 5.** The `prisma-client` generator emits TypeScript into
+`src/generated/prisma`; the connection string lives in `prisma.config.ts`; the
+runtime goes through the `@prisma/adapter-pg` driver adapter. The generator
+must have `moduleFormat = "cjs"` — otherwise Node loads the client as ESM and
+crashes. Models are imported from the barrel `src/common/prisma/client.ts`,
+not from `@prisma/client`.
 
-**Адаптер Prisma підключається з `options: '-c timezone=UTC'`.** Без цього
-всі дати в API зміщені на величину часового поясу сесії БД.
+**The Prisma adapter connects with `options: '-c timezone=UTC'`.** Without it
+every date in the API shifts by the database session's time zone offset.
 
-**Значення enum у схемі Prisma — кожне з нового рядка.** Однорядковий запис
-не валідний.
+**Enum values in the Prisma schema go one per line.** A single-line form is
+not valid.
 
-**`tsBuildInfoFile` лежить усередині `dist`.** Інакше `deleteOutDir` витирає
-вихід, кеш лишається, і збірка не видає жодного файлу.
+**`tsBuildInfoFile` lives inside `dist`.** Otherwise `deleteOutDir` wipes the
+output, the cache survives, and the build emits nothing at all.
 
-**Аплоад, переглядач, пошук і кошик живуть усередині `features/items`**, а не
-окремими фічами: вони не існують без елементів і потребують тих самих ключів
-кешу. Окремі фічі створили б крос-імпорти, заборонені перевіркою меж.
+**Upload, viewer, search and trash live inside `features/items`** rather than
+as separate features: they do not exist without items and need the same cache
+keys. Separate features would create cross-feature imports, which the
+boundary check forbids.
 
-**Межі bulletproof стереже власний скрипт** `apps/web/scripts/check-boundaries.mjs`,
-бо oxlint (лінтер за замовчуванням шаблону) не має `import/no-restricted-paths`.
-Правило: спільний шар → features → app, і жодних імпортів між фічами.
+**Bulletproof boundaries are guarded by our own script**
+`apps/web/scripts/check-boundaries.mjs`, because oxlint (this template's
+default linter) has no `import/no-restricted-paths`. The rule: shared layer →
+features → app, and no imports between features.
 
-**`cn` лежить у `lib/utils.ts`** — конвенція shadcn, інакше він переписує
-компоненти при кожному `add`.
+**`cn` lives in `lib/utils.ts`** — the shadcn convention; otherwise it
+rewrites components on every `add`.
 
-**TypeScript закріплений на 5.9** — `openapi-typescript` не підтримує 6.x.
+**TypeScript is pinned to 5.9** — `openapi-typescript` does not support 6.x.
 
-**Vite: `resolve.dedupe` для react і `strictPort: true`.** Перше рятує від
-двох копій React у монорепо, друге не дає тихо піднятися на іншому порту.
+**Vite: `resolve.dedupe` for react and `strictPort: true`.** The first saves
+us from two copies of React in the monorepo, the second keeps the dev server
+from quietly coming up on a different port.
 
-**Коментарі в коді українською**, хоча в плані записано «англійською».
-Ідентифікатори англійські. Повідомлення комітів і UI — українські.
+**Storybook is installed without the vitest integration.** `storybook init`
+drags in `@storybook/addon-vitest`, chromatic, playwright and rewrites
+`vite.config.ts` for browser tests. All of that was removed; what remains is
+`storybook`, `@storybook/tanstack-react`, `addon-docs` and `addon-a11y`, with
+`vite.config.ts` restored from git. Stories sit next to their components.
+Run with `npm run storybook` in `apps/web`, port 6006.
 
-**Storybook стоїть без vitest-інтеграції.** `storybook init` тягне за собою
-аддон `@storybook/addon-vitest`, chromatic, playwright і переписує
-`vite.config.ts` під браузерні тести. Усе це знято: лишились `storybook`,
-`@storybook/tanstack-react`, `addon-docs` і `addon-a11y`, а `vite.config.ts`
-повернуто з git. Story лежать поруч із компонентами: `components/ui/button`,
-`components/access-denied-screen`, `items-empty-state`, `item-breadcrumbs`
-і `UploadRow` (експортований з `upload-panel` саме заради story).
-Запуск — `npm run storybook` у `apps/web`, порт 6006.
+**Comments and UI copy are in English.** The project was written in Ukrainian
+first and translated wholesale on 2026-08-23; commit messages before that
+date are still Ukrainian.
 
-## Відомі прогалини
+## Known gaps
 
-**Swagger не описує відповіді.** `0 із 27` операцій мають схему відповіді, бо
-контролери повертають звичайні TS-інтерфейси. Наслідок: генерація типів
-захищає лише тіла **запитів**, а рев'ювер в `/docs` не бачить, що повернеться.
-Виправляється класами-відповідями з `@ApiProperty` — приблизно година роботи.
-Варто зробити перед здачею.
+**Swagger does not describe responses.** `0 of 27` operations have a response
+schema, because controllers return plain TS interfaces. The consequence:
+generated types only protect **request** bodies, and a reviewer looking at
+`/docs` cannot see what comes back. Fixing it means response classes with
+`@ApiProperty` — roughly an hour of work. Worth doing before submission.
 
-**`npm audit` показує 3 high** — `deepmerge-ts` через CLI Prisma
-(devDependency). Ми на найновішій версії, фіксу немає, `audit fix --force`
-понизив би Prisma до старшого мажора. Згадати в README.
+**`npm audit` reports 3 high** findings in `deepmerge-ts`, via the Prisma CLI
+(a devDependency). We are on the latest version, there is no fix, and
+`audit fix --force` would downgrade Prisma across a major version. Mentioned
+in the README.
 
-**Пошук доступний лише власнику кімнати.** Глядач із доступом до великої
-папки шукати в ній не може.
+**Search is available to the room owner only.** A viewer with access to a
+large folder cannot search inside it.
 
-**`Item.createdById` має `RESTRICT`** — користувача не можна видалити, поки
-існують створені ним елементи. Видалення акаунта не в обсязі MVP.
+**`Item.createdById` uses `RESTRICT`** — a user cannot be deleted while items
+they created still exist. Account deletion is out of MVP scope.
 
-**Перейменування кімнати не міняє імені кореневої папки.** Зараз невидимо,
-бо breadcrumbs беруть назву з кімнати.
+**Renaming a room does not rename its root folder.** Invisible today, because
+breadcrumbs take the name from the room.
 
-## Як ми працюємо
+**A retried upload creates a second row.** The retry starts from step 1, so
+the abandoned `PENDING` row holds the name until the hourly cleanup, and the
+file lands as `name (1).pdf`.
 
-**Antivibe.** Спершу опис і уточнювальні питання, потім код, після кожної
-задачі — вікно на перевірку. Не переходити до наступної задачі без слова
-користувача.
+## How we work
 
-**Перевірка перед закриттям задачі.** Не лише типи й збірка, а й реальна
-поведінка в браузері та чиста консоль. Після перевірки — **зупиняти сервери**
-(порти 3000 і 5173 мають лишатися вільними для користувача).
+**Antivibe.** Description and clarifying questions first, then code, then a
+review window after each task. Never move to the next task without the user
+saying so.
 
-**Коміти** — по задачі, стейджити явні шляхи, не `git add -A`: одного разу
-так було закомічено незавершену правку користувача.
+**Verification before closing a task.** Not only types and a build, but real
+behaviour in the browser and a clean console. After verifying — **stop the
+servers** (ports 3000 and 5173 must stay free for the user).
 
-**Особливості середовища браузера.** Панель не композитить кадри, тому не
-працюють скріншоти, кліки по координатах і `IntersectionObserver`. Керувати
-сторінкою через `javascript_tool`; стан читати з DOM. Консоль може містити
-записи зі старих вкладок — для чистої перевірки відкривати нову.
+**Commits** are per task, staging explicit paths rather than `git add -A`:
+that once committed an unfinished change of the user's.
 
-**Довгі heredoc у bash рвуться** на файлах понад ~200 рядків і калічать
-шаблонні літерали з `${}` і backtick'ами. Великі файли писати інструментом
-запису, точкові правки — редактором.
+**Browser environment quirks.** The pane does not composite frames, so
+screenshots, coordinate clicks and `IntersectionObserver` do not work. Drive
+the page through `javascript_tool` and read state from the DOM. The console
+may contain entries from old tabs — open a new one for a clean check.
+
+**Long bash heredocs break** on files over ~200 lines and mangle template
+literals containing `${}` and backticks. Write large files with the write
+tool, and make targeted edits with the editor.

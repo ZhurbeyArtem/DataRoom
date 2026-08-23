@@ -3,10 +3,10 @@ import { setAccessToken } from '@/lib/api-client';
 import type { SessionUser } from '@/types/api';
 
 /**
- * `unknown` — ще не зʼясували, чи є сесія: саме в цьому стані застосунок
- * показує скелетон, а не викидає на /login. Без цього третього значення
- * кожне перезавантаження сторінки блимало б формою входу перед тим,
- * як refresh-cookie відновить сесію.
+ * `unknown` means we have not established yet whether a session exists:
+ * in that state the app shows a skeleton instead of bouncing to /login.
+ * Without this third value every page reload would flash the sign-in form
+ * before the refresh cookie restores the session.
  */
 export type SessionStatus = 'unknown' | 'authenticated' | 'anonymous';
 

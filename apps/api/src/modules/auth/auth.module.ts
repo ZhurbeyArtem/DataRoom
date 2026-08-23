@@ -12,17 +12,17 @@ import { JwtStrategy } from './strategies/jwt.strategy';
   imports: [
     UsersModule,
     PassportModule,
-    // Саме registerAsync, а не register: синхронний варіант читає process.env
-    // у момент імпорту модуля, тобто ДО того, як ConfigModule завантажить .env.
-    // Секрет виявився б undefined, і кожна видача токена падала б у 500.
+    // registerAsync rather than register: the synchronous variant reads
+    // process.env at module import time, i.e. BEFORE ConfigModule loads .env.
+    // The secret would be undefined and every token issue would 500.
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        // getOrThrow валить застосунок на старті, якщо секрету немає, —
-        // це краще, ніж дізнатися про це з першої помилки користувача.
+        // getOrThrow crashes the app at boot when the secret is missing —
+        // better than learning about it from the first user-facing error.
         secret: config.getOrThrow<string>('JWT_ACCESS_SECRET'),
         signOptions: {
-          // @nestjs/jwt приймає не будь-який рядок, а формат ms: '15m', '7d'.
+          // @nestjs/jwt accepts the ms format specifically: '15m', '7d'.
           expiresIn: config.get<string>('JWT_ACCESS_TTL', '15m') as StringValue,
         },
       }),

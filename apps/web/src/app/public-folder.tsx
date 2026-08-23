@@ -5,12 +5,12 @@ import { FolderView } from '@/features/items/components/folder-view';
 import { sharesApi } from '@/features/shares/api/shares';
 
 /**
- * Живе в шарі застосунку, а не у фічі: складає докупи фічу елементів
- * (оглядач папки) і фічу доступів (розвʼязання токена), а прямий імпорт
- * між фічами заборонений.
+ * Lives in the app layer rather than in a feature: it composes the items
+ * feature (the folder view) with the shares feature (resolving the token),
+ * and direct imports between features are forbidden.
  */
 export function PublicFolder({ token, itemId }: { token: string; itemId?: string }) {
-  // Глядач має лише токен, тому спершу зʼясовуємо, ЩО йому відкрито.
+  // A visitor holds only the token, so first find out WHAT was opened.
   const target = useQuery({
     queryKey: ['share-target', token],
     queryFn: sharesApi.target,
@@ -35,8 +35,8 @@ export function PublicFolder({ token, itemId }: { token: string; itemId?: string
       roomId={target.data.dataRoomId}
       roomName={shared.name}
       rootItemId={shared.id}
-      // Корінь для глядача — це елемент, яким поділилися, а не корінь
-      // кімнати: до нього доступу немає й бути не має.
+      // For a visitor the root is the shared item, not the room root: they
+      // have no access to that one, and should not have.
       itemId={itemId ?? shared.id}
       readOnly
       shareToken={token}

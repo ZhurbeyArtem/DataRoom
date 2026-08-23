@@ -27,7 +27,7 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Post('register')
-  @ApiOperation({ summary: 'Реєстрація за email і паролем' })
+  @ApiOperation({ summary: 'Sign up with email and password' })
   async register(
     @Body() dto: RegisterDto,
     @Res({ passthrough: true }) res: Response,
@@ -36,7 +36,7 @@ export class AuthController {
   }
 
   @Post('login')
-  @ApiOperation({ summary: 'Вхід за email і паролем' })
+  @ApiOperation({ summary: 'Sign in with email and password' })
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
@@ -45,7 +45,7 @@ export class AuthController {
   }
 
   @Post('refresh')
-  @ApiOperation({ summary: 'Новий access-токен за refresh-cookie' })
+  @ApiOperation({ summary: 'New access token from the refresh cookie' })
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -54,7 +54,7 @@ export class AuthController {
   }
 
   @Post('logout')
-  @ApiOperation({ summary: 'Вихід і відкликання сесії' })
+  @ApiOperation({ summary: 'Sign out and revoke the session' })
   async logout(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -67,21 +67,22 @@ export class AuthController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Поточний користувач' })
+  @ApiOperation({ summary: 'Current user' })
   me(@CurrentUser() user: AuthUser): AuthUser {
     return user;
   }
 
   private readCookie(req: Request): string {
     const token = (req.cookies as Record<string, string> | undefined)?.[REFRESH_COOKIE];
-    if (!token) throw new UnauthorizedException('Сесія відсутня');
+    if (!token) throw new UnauthorizedException('No session');
     return token;
   }
 
   /**
-   * Refresh-токен не повертається в тілі — лише в httpOnly cookie, недосяжній
-   * для JavaScript. Тому XSS на фронті не дає вкрасти довгоживучу сесію.
-   * path звужує, куди браузер узагалі його відправляє.
+   * The refresh token is never returned in the body — only in an httpOnly
+   * cookie that JavaScript cannot read. That way an XSS on the frontend
+   * cannot steal the long-lived session. `path` narrows where the browser
+   * sends it at all.
    */
   private respond(
     result: AuthResult,

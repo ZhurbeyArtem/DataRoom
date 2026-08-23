@@ -4,7 +4,7 @@ import { ItemBreadcrumbs } from './item-breadcrumbs';
 const crumb = (name: string) => ({ id: name, name });
 
 const meta = {
-  title: 'Елементи/ItemBreadcrumbs',
+  title: 'Items/ItemBreadcrumbs',
   component: ItemBreadcrumbs,
   args: { roomId: 'room-1', roomName: 'Due Diligence 2026' },
 } satisfies Meta<typeof ItemBreadcrumbs>;
@@ -13,36 +13,36 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** Корінь кімнати: сама назва кімнати і є поточною сторінкою. */
+/** Room root: the room name itself is the current page. */
 export const RoomRoot: Story = {
   args: { trail: [] },
 };
 
 export const OneLevel: Story = {
-  args: { trail: [crumb('Кімната')], current: 'Фінанси' },
+  args: { trail: [crumb('Room')], current: 'Finance' },
 };
 
-/** Довгий шлях: перевіряємо, що ланцюжок переноситься, а не ламає верстку. */
+/** A long path: checks that the chain wraps instead of breaking the layout. */
 export const LongPath: Story = {
   args: {
     trail: [
-      crumb('Кімната'),
-      crumb('Фінанси'),
-      crumb('Звітність'),
+      crumb('Room'),
+      crumb('Finance'),
+      crumb('Reporting'),
       crumb('2026'),
-      crumb('Квартал 1'),
+      crumb('Q1'),
     ],
-    current: 'Аудиторські висновки',
+    current: 'Auditor opinions',
   },
 };
 
-/** Публічний глядач назви кімнати не знає — першої крихти немає. */
+/** A public viewer does not know the room name — no first crumb. */
 export const PublicViewer: Story = {
   args: {
     roomName: undefined,
     readOnly: true,
     shareToken: 'token',
-    trail: [crumb('Спільна папка')],
-    current: 'Договори',
+    trail: [crumb('Shared folder')],
+    current: 'Contracts',
   },
 };

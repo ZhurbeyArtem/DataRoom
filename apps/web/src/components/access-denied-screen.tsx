@@ -2,10 +2,10 @@ import { FileX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 /**
- * Один екран на три причини — видалено, доступ відкликано, посилання
- * протермінувалось — і це навмисно. Глядач не має їх розрізняти: різниця
- * між «видалено» і «доступ забрали» вже сама по собі є інформацією про
- * чужу кімнату.
+ * One screen for three causes — deleted, access revoked, link expired — and
+ * that is deliberate. A viewer must not be able to tell them apart: the
+ * difference between "deleted" and "access taken away" is itself information
+ * about someone else's room.
  */
 export function AccessDeniedScreen({ onBack }: { onBack?: () => void }) {
   return (
@@ -13,13 +13,13 @@ export function AccessDeniedScreen({ onBack }: { onBack?: () => void }) {
       <div className="flex size-12 items-center justify-center rounded-full bg-muted">
         <FileX className="size-6 text-muted-foreground" />
       </div>
-      <h2 className="text-lg font-medium">Цей матеріал більше недоступний</h2>
+      <h2 className="text-lg font-medium">This content is no longer available</h2>
       <p className="text-sm text-muted-foreground">
-        Його видалили, доступ відкликали або термін дії посилання минув.
+        It was deleted, access was revoked, or the link has expired.
       </p>
       {onBack && (
         <Button variant="outline" className="mt-2" onClick={onBack}>
-          Повернутися назад
+          Go back
         </Button>
       )}
     </div>

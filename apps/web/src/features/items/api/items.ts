@@ -42,7 +42,7 @@ export const itemsApi = {
 
   trash: (dataRoomId: string) => api.get<Item[]>(`/items/trash/${dataRoomId}`),
 
-  // Трикроковий аплоад: URL → PUT напряму в сховище → підтвердження.
+  // Three-step upload: URL → PUT straight to storage → confirmation.
   createUploadUrl: (body: CreateUploadUrlInput) =>
     api.post<UploadTicket>('/items/upload-url', body),
 

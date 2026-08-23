@@ -6,8 +6,8 @@ import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
   plugins: [
-    // Генерує дерево маршрутів із файлів у src/app/routes.
-    // Має стояти ПЕРЕД react() — так вимагає плагін.
+    // Generates the route tree from the files in src/app/routes.
+    // Must come BEFORE react() — the plugin requires it.
     tanstackRouter({
       routesDirectory: './src/app/routes',
       generatedRouteTree: './src/app/routeTree.gen.ts',
@@ -19,13 +19,13 @@ export default defineConfig({
   ],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
-    // У монорепо частина пакетів іде з попередньо зібраних deps, частина —
-    // напряму з node_modules, і React опиняється в дереві двічі. Наслідок —
-    // "Invalid hook call" у компонентах бібліотек. dedupe змушує всіх
-    // використовувати один екземпляр.
+    // In a monorepo some packages come from pre-bundled deps and some
+    // straight from node_modules, which puts React in the tree twice. The
+    // result is "Invalid hook call" inside library components. dedupe forces
+    // everyone onto one instance.
     dedupe: ['react', 'react-dom'],
   },
-  // strictPort: якщо 5173 зайнятий, краще впасти, ніж мовчки піднятися
-  // на іншому порту — інакше браузер говоритиме зі старим сервером.
+  // strictPort: if 5173 is taken it is better to fail than to quietly come
+  // up on another port — otherwise the browser talks to a stale server.
   server: { port: 5173, strictPort: true },
 });

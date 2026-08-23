@@ -5,14 +5,14 @@ import { Button } from './button';
 const meta = {
   title: 'UI/Button',
   component: Button,
-  args: { children: 'Створити' },
+  args: { children: 'Create' },
 } satisfies Meta<typeof Button>;
 
 export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** Усі варіанти поруч: саме так видно, що вони не розʼїхались між собою. */
+/** All variants side by side: that is how drift between them shows up. */
 export const Variants: Story = {
   render: (args) => (
     <div className="flex flex-wrap items-center gap-2">
@@ -42,7 +42,7 @@ export const WithIcon: Story = {
     children: (
       <>
         <FolderPlus />
-        Нова папка
+        New folder
       </>
     ),
     variant: 'outline',
@@ -50,11 +50,11 @@ export const WithIcon: Story = {
 };
 
 /**
- * Стан запиту. Кнопка не просто крутить спінер — вона заблокована, тому
- * подвійний клік не створює дві папки.
+ * Request state. The button does not merely spin — it is disabled, so a
+ * double click cannot create two folders.
  */
 export const Loading: Story = {
-  args: { loading: true, children: 'Створюємо…' },
+  args: { loading: true, children: 'Creating…' },
 };
 
 export const Disabled: Story = {

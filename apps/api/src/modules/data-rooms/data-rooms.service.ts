@@ -4,7 +4,7 @@ import { DataRoom, ItemType, Prisma } from '../../common/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 
-/** Supabase не любить надто довгих списків на видалення — ріжемо партіями. */
+/** Supabase dislikes very long delete lists — send them in batches. */
 const REMOVE_BATCH = 100;
 
 @Injectable()
@@ -24,9 +24,9 @@ export class DataRoomsService extends BaseCrudService<Prisma.DataRoomDelegate> {
   }
 
   /**
-   * Кімната і її коренева папка створюються однією транзакцією.
-   * rootItemId нульований у схемі саме через цю циклічність: спершу кімната,
-   * потім корінь, який на неї посилається, потім зворотне посилання.
+   * A room and its root folder are created in a single transaction.
+   * rootItemId is nullable in the schema precisely because of this cycle:
+   * first the room, then the root that points at it, then the back-reference.
    */
   createWithRoot(ownerId: string, name: string): Promise<DataRoom> {
     return this.prisma.$transaction(async (tx) => {
@@ -52,14 +52,14 @@ export class DataRoomsService extends BaseCrudService<Prisma.DataRoomDelegate> {
   }
 
   /**
-   * Єдина точка перевірки власності, якою користуються й інші модулі.
-   * 404, а не 403: різниця між ними дозволила б перебором з'ясувати,
-   * які кімнати існують у чужому акаунті.
+   * The single ownership check, used by other modules as well.
+   * 404 rather than 403: the difference between them would let an attacker
+   * enumerate which rooms exist in someone else's account.
    */
   assertOwned(roomId: string, ownerId: string): Promise<DataRoom> {
     return this.findOneWithError(
       { where: { id: roomId, ownerId } },
-      'Кімнату не знайдено',
+      'Data room not found',
     );
   }
 
@@ -69,20 +69,21 @@ export class DataRoomsService extends BaseCrudService<Prisma.DataRoomDelegate> {
   }
 
   /**
-   * Рядки прибирає onDelete: Cascade у схемі — Postgres сам стирає всі Item
-   * і Share цієї кімнати. А от блоби доводиться зібрати ЗАЗДАЛЕГІДЬ: разом
-   * із рядками зникають і storageKey, після чого об'єкти у сховищі стають
-   * недосяжними назавжди — фонова чистка шукає лише незавершені аплоади.
+   * Rows are handled by onDelete: Cascade in the schema — Postgres removes
+   * every Item and Share of this room itself. The blobs, however, have to be
+   * collected BEFOREHAND: storageKey values disappear together with the rows,
+   * after which the stored objects are unreachable forever — the background
+   * cleanup only looks for unfinished uploads.
    *
-   * Порядок такий самий, як у CleanupService: спершу сховище, потім БД.
-   * Якщо сховище відмовить, кімната лишиться на місці й спробу можна
-   * повторити — це краще, ніж втратити ключі разом із рядками.
+   * Same ordering as in CleanupService: storage first, database second.
+   * If storage fails, the room stays and the attempt can be retried — better
+   * than losing the keys along with the rows.
    */
   async remove(roomId: string, ownerId: string): Promise<void> {
     await this.assertOwned(roomId, ownerId);
 
-    // Кошик сюди теж входить: видалення кімнати остаточне, і м'яко
-    // видалені файли переживати її не мають.
+    // The trash is included: deleting a room is final, and soft-deleted
+    // files should not outlive it.
     const files = await this.prisma.item.findMany({
       where: { dataRoomId: roomId, storageKey: { not: null } },
       select: { storageKey: true },

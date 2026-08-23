@@ -3,11 +3,11 @@ import { useEffect } from 'react';
 const SUFFIX = 'Data Room';
 
 /**
- * Назва вкладки йде за поточною папкою: з десятком відкритих вкладок
- * однаковий заголовок «Data Room» робить їх нерозрізнюваними.
+ * The tab title follows the current folder: with a dozen tabs open, an
+ * identical "Data Room" title makes them indistinguishable.
  *
- * `undefined` означає «ще не завантажилось» — тоді лишаємо те, що є,
- * замість того щоб блимнути порожнім заголовком.
+ * `undefined` means "not loaded yet" — in that case keep whatever is there
+ * instead of flashing an empty title.
  */
 export function useDocumentTitle(title: string | undefined): void {
   useEffect(() => {
@@ -16,8 +16,8 @@ export function useDocumentTitle(title: string | undefined): void {
     const previous = document.title;
     document.title = title ? `${title} — ${SUFFIX}` : SUFFIX;
 
-    // Повернення попереднього значення важливе при швидкій навігації:
-    // ефект розмонтованого екрана не має перебивати заголовок нового.
+    // Restoring the previous value matters during fast navigation: the
+    // effect of an unmounted screen must not override the new one's title.
     return () => {
       document.title = previous;
     };

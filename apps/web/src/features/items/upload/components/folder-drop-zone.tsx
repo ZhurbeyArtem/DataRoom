@@ -15,10 +15,10 @@ interface FolderDropZoneProps {
 }
 
 /**
- * Спільна для обох шляхів аплоаду. Атрибут accept на <input> лише підказує
- * діалогу, що показати першим: користувач перемикає його на «Усі файли»
- * і вибирає будь-що, тому відсіювати доводиться однаково і після вибору
- * кнопкою, і після перетягування.
+ * Shared by both upload paths. The accept attribute on <input> only hints to
+ * the dialog what to show first: users switch it to "All files" and pick
+ * anything, so filtering has to happen the same way after a button choice as
+ * after a drag and drop.
  */
 function acceptPdfs(files: File[], enqueue: (files: File[]) => void): void {
   const pdfs = files.filter((file) => file.type === ACCEPTED);
@@ -26,7 +26,7 @@ function acceptPdfs(files: File[], enqueue: (files: File[]) => void): void {
 
   if (rejected > 0) {
     toast.warning(
-      `Пропущено ${plural(rejected, 'файл', 'файли', 'файлів')}: підтримуються лише PDF`,
+      `Skipped ${plural(rejected, 'file')}: only PDFs are supported`,
     );
   }
 
@@ -36,8 +36,8 @@ function acceptPdfs(files: File[], enqueue: (files: File[]) => void): void {
 export function FolderDropZone({ parentId, scopeId, children }: FolderDropZoneProps) {
   const enqueue = useUploadStore((state) => state.enqueue);
   const [dragging, setDragging] = useState(false);
-  // Лічильник, а не булеве: dragenter/dragleave спрацьовують і на дочірніх
-  // елементах, тож проста прапорцева змінна блимала б при русі курсора.
+  // A counter rather than a boolean: dragenter/dragleave also fire on child
+  // elements, so a plain flag would flicker as the cursor moves.
   const depth = useRef(0);
 
   function onDrop(event: DragEvent) {
@@ -73,7 +73,7 @@ export function FolderDropZone({ parentId, scopeId, children }: FolderDropZonePr
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-background/80">
           <div className="flex items-center gap-2 text-sm font-medium">
             <Upload className="size-4" />
-            Відпустіть, щоб завантажити сюди
+            Drop to upload here
           </div>
         </div>
       )}
@@ -82,8 +82,9 @@ export function FolderDropZone({ parentId, scopeId, children }: FolderDropZonePr
 }
 
 /**
- * Кнопка поруч із drag-and-drop, а не замість нього: перетягування зручне
- * мишею, але недоступне з клавіатури й незручне на тачпаді.
+ * A button next to drag and drop rather than instead of it: dragging is
+ * convenient with a mouse but unavailable from the keyboard and awkward on a
+ * trackpad.
  */
 export function UploadButton({ parentId, scopeId }: { parentId: string; scopeId: string }) {
   const enqueue = useUploadStore((state) => state.enqueue);
@@ -101,15 +102,15 @@ export function UploadButton({ parentId, scopeId }: { parentId: string; scopeId:
           acceptPdfs([...(event.target.files ?? [])], (files) =>
             enqueue(files, { parentId, scopeId }),
           );
-          // Скидаємо значення, інакше вибір того самого файлу вдруге
-          // не викличе change.
+          // Reset the value, otherwise picking the same file twice would
+          // not fire change.
           event.target.value = '';
         }}
       />
 
       <Button onClick={() => input.current?.click()}>
         <Upload className="size-4" />
-        Завантажити
+        Upload
       </Button>
     </>
   );

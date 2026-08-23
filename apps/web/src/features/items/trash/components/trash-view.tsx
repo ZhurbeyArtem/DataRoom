@@ -14,7 +14,7 @@ export function TrashView({ roomId, roomName }: { roomId: string; roomName?: str
   const trash = useTrash(roomId);
   const restore = useRestoreItem(roomId);
 
-  useDocumentTitle(roomName && `Кошик · ${roomName}`);
+  useDocumentTitle(roomName && `Trash · ${roomName}`);
 
   return (
     <div className="space-y-4">
@@ -25,9 +25,9 @@ export function TrashView({ roomId, roomName }: { roomId: string; roomName?: str
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="size-3.5" />
-            {roomName ?? 'До кімнати'}
+            {roomName ?? 'Back to the room'}
           </Link>
-          <h1 className="mt-1 text-2xl font-medium">Кошик</h1>
+          <h1 className="mt-1 text-2xl font-medium">Trash</h1>
         </div>
       </div>
 
@@ -41,7 +41,7 @@ export function TrashView({ roomId, roomName }: { roomId: string; roomName?: str
 
       {trash.isError && (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 py-12 text-center">
-          <h2 className="font-medium">Не вдалося завантажити кошик</h2>
+          <h2 className="font-medium">Could not load the trash</h2>
           <p className="mt-1 text-sm text-muted-foreground">{errorMessage(trash.error)}</p>
         </div>
       )}
@@ -51,9 +51,9 @@ export function TrashView({ roomId, roomName }: { roomId: string; roomName?: str
           <div className="flex size-12 items-center justify-center rounded-full bg-muted">
             <Trash2 className="size-6 text-muted-foreground" />
           </div>
-          <h2 className="mt-4 font-medium">У кошику порожньо</h2>
+          <h2 className="mt-4 font-medium">The trash is empty</h2>
           <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-            Видалені папки й файли зберігаються тут, доки ви їх не відновите
+            Deleted folders and files stay here until you restore them
           </p>
         </div>
       )}
@@ -69,7 +69,7 @@ export function TrashView({ roomId, roomName }: { roomId: string; roomName?: str
                   {item.name}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Видалено {item.deletedAt ? formatRelative(item.deletedAt) : ''}
+                  Deleted {item.deletedAt ? formatRelative(item.deletedAt) : ''}
                   {item.type === 'FILE' && ` · ${formatBytes(item.size)}`}
                 </div>
               </div>
@@ -81,23 +81,23 @@ export function TrashView({ roomId, roomName }: { roomId: string; roomName?: str
                 onClick={() =>
                   restore.mutate(item.id, {
                     onSuccess: (restored) => {
-                      // Імʼя могло змінитися: поки елемент лежав у кошику,
-                      // його місце могла зайняти нова папка з тією ж назвою.
+                      // The name may have changed: while the item sat in
+                      // the trash, a new folder could have taken its name.
                       const renamed = restored.name !== item.name;
                       const moved = restored.parentId !== item.parentId;
 
                       if (renamed && moved) {
                         toast.info(
-                          `Повернуто як «${restored.name}» у корінь: попередню папку видалено`,
+                          `Restored as “${restored.name}” into the room root: its previous folder was deleted`,
                         );
                       } else if (renamed) {
-                        toast.info(`Повернуто як «${restored.name}» — таке імʼя вже було`);
+                        toast.info(`Restored as “${restored.name}” — that name was taken`);
                       } else if (moved) {
                         toast.info(
-                          `«${restored.name}» повернуто в корінь: попередню папку видалено`,
+                          `“${restored.name}” was restored into the room root: its previous folder was deleted`,
                         );
                       } else {
-                        toast.success(`«${restored.name}» відновлено`);
+                        toast.success(`“${restored.name}” restored`);
                       }
                     },
                     onError: (error) => toast.error(errorMessage(error)),
@@ -105,7 +105,7 @@ export function TrashView({ roomId, roomName }: { roomId: string; roomName?: str
                 }
               >
                 <RotateCcw className="size-3.5" />
-                Відновити
+                Restore
               </Button>
             </li>
           ))}

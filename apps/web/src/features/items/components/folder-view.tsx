@@ -27,27 +27,27 @@ import { ItemsTable } from './items-table';
 
 interface FolderViewProps {
   roomId: string;
-  /** Не задано — відвідувач не власник кімнати, і її назви він не знає. */
+  /** Omitted — the visitor does not own the room and does not know its name. */
   roomName?: string;
-  /** Коренева папка кімнати — саме вона стає батьком для нових елементів. */
+  /** The room's root folder — the parent every new item is created under. */
   rootItemId: string | null;
-  /** Не задано — показуємо корінь кімнати. */
+  /** Omitted — show the room root. */
   itemId?: string;
   /**
-   * Режим публічного глядача: жодних дій, аплоаду й зони перетягування.
-   * Не приховані стилями — їх просто немає в дереві.
+   * Public viewer mode: no actions, no upload, no drop zone. They are not
+   * hidden with styles — they are simply absent from the tree.
    */
   readOnly?: boolean;
-  /** Не задано — кнопки й пункт «Поділитися» не рендеряться. */
+  /** Omitted — the share buttons and the "Share" entry are not rendered. */
   onShare?: (target: ShareTarget) => void;
-  /** Задано — навігація йде публічними маршрутами за посиланням. */
+  /** Set — navigation goes through the public link routes. */
   shareToken?: string;
 }
 
 /**
- * Один контейнер обслуговує три випадки: корінь кімнати, вкладену папку
- * і публічний перегляд за посиланням. Різниця лише в тому, чим обмежений
- * лістинг і які дії дозволені.
+ * One container serves three cases: a room root, a nested folder, and the
+ * public view behind a link. The only differences are what bounds the
+ * listing and which actions are allowed.
  */
 export function FolderView({
   roomId,
@@ -68,8 +68,8 @@ export function FolderView({
   const [deleting, setDeleting] = useState<Item | null>(null);
   const [previewing, setPreviewing] = useState<Item | null>(null);
 
-  // Лістинг кореня запитувався по кімнаті, тому під цим ключем він і лежить
-  // у кеші; для вкладеної папки ключ — її власний id.
+  // The root listing was requested by room, so that is the key it sits under
+  // in the cache; for a nested folder the key is its own id.
   const scopeId = itemId ?? roomId;
   const parentId = itemId ?? rootItemId;
   const canEdit = !readOnly && parentId !== null;
@@ -77,9 +77,9 @@ export function FolderView({
   const client = useQueryClient();
   const setOnUploaded = useUploadStore((state) => state.setOnUploaded);
 
-  // Черга аплоаду живе поза React-деревом, тому оновлення лістингу після
-  // кожного підтвердженого файлу вішається сюди: файли зʼявляються в таблиці
-  // по одному, а не всі наприкінці.
+  // The upload queue lives outside the React tree, so refreshing the listing
+  // after each confirmed file is hooked up here: files appear in the table
+  // one by one rather than all at the end.
   useEffect(() => {
     setOnUploaded((finishedScopeId) => {
       void client.invalidateQueries({ queryKey: itemsKey(finishedScopeId) });
@@ -98,16 +98,16 @@ export function FolderView({
     setPreviewing(item);
   }
 
-  // У корені кімнати назва папки і назва кімнати збігаються, тому беремо
-  // ту, що вже відома, — інакше заголовок блимав би двічі.
+  // At the room root the folder name and the room name are the same, so use
+  // whichever is already known — otherwise the title would flicker twice.
   useDocumentTitle(itemId ? current.data?.item.name : roomName);
 
   const items = listing.data?.items ?? [];
   const isEmpty = listing.isSuccess && items.length === 0;
 
-  // 404 означає і «видалено», і «доступ відкликано» — саме тому екран один.
-  // Завдяки рефетчу при поверненні фокуса він зʼявляється сам, щойно
-  // власник забирає доступ у відкритої вкладки глядача.
+  // A 404 means both "deleted" and "access revoked" — which is exactly why
+  // there is one screen. Thanks to the refetch on window focus it appears by
+  // itself the moment an owner revokes access on an open viewer tab.
   const denied =
     (listing.error instanceof ApiError && listing.error.isNotFound) ||
     (current.error instanceof ApiError && current.error.isNotFound);
@@ -121,8 +121,9 @@ export function FolderView({
           roomId={roomId}
           roomName={roomName}
           trail={current.data?.breadcrumbs ?? []}
-          // Коли ми стоїмо в корені видимої гілки, його назва вже є першою
-          // крихтою — інакше вона зʼявилася б у ланцюжку двічі поспіль.
+          // When standing at the root of the visible branch, its name is
+          // already the first crumb — otherwise it would appear twice in a
+          // row.
           current={
             itemId && itemId !== rootItemId ? current.data?.item.name : undefined
           }
@@ -130,25 +131,25 @@ export function FolderView({
           shareToken={shareToken}
         />
 
-        {/* Переноситься: на 375 px три кнопки в рядок не влазять,
-            і без переносу сторінка їхала б убік. */}
+        {/* Wraps: at 375 px three buttons do not fit on one line, and
+            without wrapping the page would scroll sideways. */}
         <div className="flex flex-wrap items-center gap-2">
           {onShare && rootItemId && !itemId && (
             <Button
               variant="outline"
               onClick={() =>
-                onShare({ id: rootItemId, name: roomName ?? 'Кімната', kind: 'room' })
+                onShare({ id: rootItemId, name: roomName ?? 'Data room', kind: 'room' })
               }
             >
               <Share2 className="size-4" />
-              Поділитися
+              Share
             </Button>
           )}
           {canEdit && (
             <>
               <Button variant="outline" onClick={() => setCreating(true)}>
                 <FolderPlus className="size-4" />
-                Нова папка
+                New folder
               </Button>
               <UploadButton parentId={parentId} scopeId={scopeId} />
             </>
@@ -163,8 +164,8 @@ export function FolderView({
         />
       )}
 
-      {/* Зона перетягування накриває і таблицю, і порожній стан: у порожню
-          папку файли кидають найчастіше. */}
+      {/* The drop zone covers both the table and the empty state: an empty
+          folder is where files get dropped most often. */}
       {!listing.isError && (
         <MaybeDropZone parentId={canEdit ? parentId : null} scopeId={scopeId}>
           {isEmpty ? (
@@ -238,8 +239,8 @@ export function FolderView({
 }
 
 /**
- * Поки кімната ще не завантажилась або ми в режимі читання, реальної
- * папки-батька немає — тоді вміст показуємо без зони перетягування.
+ * While the room is still loading, or in read-only mode, there is no real
+ * parent folder — then the contents are shown without a drop zone.
  */
 function MaybeDropZone({
   parentId,
@@ -262,10 +263,10 @@ function MaybeDropZone({
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <div className="rounded-xl border border-destructive/30 bg-destructive/5 py-12 text-center">
-      <h2 className="font-medium">Не вдалося завантажити вміст</h2>
+      <h2 className="font-medium">Could not load the contents</h2>
       <p className="mt-1 text-sm text-muted-foreground">{message}</p>
       <Button variant="outline" className="mt-4" onClick={onRetry}>
-        Спробувати ще
+        Try again
       </Button>
     </div>
   );

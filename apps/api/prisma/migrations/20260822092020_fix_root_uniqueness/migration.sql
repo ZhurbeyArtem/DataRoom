@@ -1,18 +1,18 @@
--- Старий індекс складав усі кореневі папки в одну групу: для них parentId
--- дорівнює NULL, а COALESCE підставляв ОДИН І ТОЙ САМИЙ нульовий uuid.
--- Наслідок: дві кімнати з однаковою назвою конфліктували між собою навіть
--- у різних користувачів.
+-- The old index lumped every root folder into a single group: their parentId
+-- is NULL and COALESCE substituted THE SAME zero uuid for all of them.
+-- The consequence: two rooms with the same name clashed with each other even
+-- when they belonged to different users.
 DROP INDEX IF EXISTS "item_unique_name_per_parent";
 
--- Правило для вмісту папок лишається тим самим, але тепер стосується
--- лише тих рядків, у яких батько справді є.
+-- The rule for folder contents stays the same, but now applies only to rows
+-- that actually have a parent.
 CREATE UNIQUE INDEX "item_unique_child_name"
   ON "Item" ("parentId", lower("name"))
   WHERE "deletedAt" IS NULL AND "parentId" IS NOT NULL;
 
--- Для коренів діє інший інваріант: у кімнати рівно одна коренева папка.
--- Це точніше за унікальність назви — назви кімнат можуть повторюватися
--- скільки завгодно, а от другий корінь означав би зламане дерево.
+-- Roots obey a different invariant: a room has exactly one root folder.
+-- That is more precise than name uniqueness — room names may repeat as often
+-- as they like, whereas a second root would mean a broken tree.
 CREATE UNIQUE INDEX "item_single_root_per_room"
   ON "Item" ("dataRoomId")
   WHERE "parentId" IS NULL AND "deletedAt" IS NULL;

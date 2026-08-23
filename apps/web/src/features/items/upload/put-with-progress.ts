@@ -1,7 +1,7 @@
 /**
- * fetch не вміє повідомляти прогрес відправки, тому тут XMLHttpRequest —
- * єдиний спосіб показати чесні відсотки, а не фейкову анімацію, що повзе
- * за таймером незалежно від реального стану.
+ * fetch cannot report upload progress, so XMLHttpRequest is the only way to
+ * show honest percentages rather than a fake animation creeping along on a
+ * timer regardless of what is actually happening.
  */
 export function putWithProgress(
   url: string,
@@ -22,10 +22,10 @@ export function putWithProgress(
     xhr.onload = () =>
       xhr.status >= 200 && xhr.status < 300
         ? resolve()
-        : reject(new Error(`Сховище відповіло ${xhr.status}`));
+        : reject(new Error(`Storage responded with ${xhr.status}`));
 
-    xhr.onerror = () => reject(new Error('Немає звʼязку зі сховищем'));
-    xhr.onabort = () => reject(new DOMException('Скасовано', 'AbortError'));
+    xhr.onerror = () => reject(new Error('No connection to storage'));
+    xhr.onabort = () => reject(new DOMException('Cancelled', 'AbortError'));
 
     signal.addEventListener('abort', () => xhr.abort(), { once: true });
     xhr.send(file);

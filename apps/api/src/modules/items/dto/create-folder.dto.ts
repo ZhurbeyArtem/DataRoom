@@ -8,7 +8,7 @@ export class CreateFolderDto {
 
   @ApiProperty({ example: 'Contracts' })
   @IsString()
-  @MinLength(1, { message: 'Назва папки не може бути порожньою' })
+  @MinLength(1, { message: 'Folder name cannot be empty' })
   @MaxLength(255)
   name!: string;
 }

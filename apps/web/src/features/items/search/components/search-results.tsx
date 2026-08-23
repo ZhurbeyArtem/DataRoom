@@ -38,7 +38,7 @@ export function SearchResults({
   if (search.isError) {
     return (
       <div className="rounded-xl border border-destructive/30 bg-destructive/5 py-12 text-center">
-        <h2 className="font-medium">Пошук не вдався</h2>
+        <h2 className="font-medium">Search failed</h2>
         <p className="mt-1 text-sm text-muted-foreground">{errorMessage(search.error)}</p>
       </div>
     );
@@ -60,7 +60,7 @@ export function SearchResults({
         variant="no-results"
         action={
           <Button variant="outline" onClick={onClear}>
-            Очистити пошук
+            Clear search
           </Button>
         }
       />
@@ -83,10 +83,10 @@ export function SearchResults({
                 <div className="truncate" title={item.name}>
                   {item.name}
                 </div>
-                {/* Без розташування два однойменні файли з різних папок
-                    у списку не розрізнити. */}
+                {/* Without the location, two identically named files from
+                    different folders are indistinguishable in the list. */}
                 <div className="truncate text-xs text-muted-foreground">
-                  {item.location.map((crumb) => crumb.name).join(' / ') || 'У корені кімнати'}
+                  {item.location.map((crumb) => crumb.name).join(' / ') || 'In the room root'}
                 </div>
               </div>
 
@@ -108,7 +108,7 @@ export function SearchResults({
           disabled={search.isFetchingNextPage}
           onClick={() => void search.fetchNextPage()}
         >
-          {search.isFetchingNextPage ? 'Завантажуємо…' : 'Показати ще'}
+          {search.isFetchingNextPage ? 'Loading…' : 'Show more'}
         </Button>
       )}
 

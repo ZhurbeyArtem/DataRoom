@@ -3,9 +3,9 @@ import { ListQueryDto } from './dto/list-query.dto';
 import { decodeCursor, keysetWhere, KeysetField } from './cursor.util';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// `any` тут навмисний і локалізований: це форма, якій мають відповідати всі
-// делегати Prisma. Реальні типи повертаються нащадкам через Parameters<...>,
-// тому назовні жодного `any` не витікає.
+// The `any` here is deliberate and contained: this is the shape every Prisma
+// delegate must match. Real types are handed back to subclasses through
+// Parameters<...>, so no `any` leaks outwards.
 export interface PrismaDelegate {
   create(args: any): Promise<any>;
   update(args: any): Promise<any>;
@@ -16,7 +16,7 @@ export interface PrismaDelegate {
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export interface KeysetConfig {
-  /** Поля сортування в порядку пріоритету. Останнім завжди має бути `id`. */
+  /** Sort fields in priority order. The last one must always be `id`. */
   fields: readonly KeysetField[];
   defaultLimit?: number;
 }
@@ -51,9 +51,9 @@ export abstract class BaseCrudService<TDelegate extends PrismaDelegate> {
   }
 
   /**
-   * Той самий findOne, але кидає NotFound замість повернення null.
-   * Прибирає з кожного сервісу однаковий трирядковий блок перевірки
-   * і гарантує, що "не знайдено" скрізь виглядає однаково.
+   * The same findOne, but throws NotFound instead of returning null.
+   * Removes the identical three-line check from every service and guarantees
+   * that "not found" looks the same everywhere.
    */
   async findOneWithError(
     args: Parameters<TDelegate['findFirst']>[0],
@@ -69,14 +69,14 @@ export abstract class BaseCrudService<TDelegate extends PrismaDelegate> {
   }
 
   /**
-   * Перетворює query-параметри на аргументи Prisma з курсорною пагінацією.
-   * Бере на один рядок більше, ніж просили, — зайвий рядок і є ознакою,
-   * що наступна сторінка існує, без окремого count-запиту.
+   * Turns query parameters into Prisma arguments with cursor pagination.
+   * Fetches one row more than asked for — that extra row is the signal that
+   * a next page exists, without a separate count query.
    */
   queryBuilder(query: ListQueryDto, config: KeysetConfig): BuiltQuery {
     const limit = query.limit ?? config.defaultLimit ?? 50;
 
-    // Завжди asc: саме цей напрямок закладений у keysetWhere.
+    // Always asc: that is the direction keysetWhere is built around.
     const where = query.cursor ? keysetWhere(decodeCursor(query.cursor)) : {};
     const orderBy = config.fields.map(({ field }) => ({ [field]: 'asc' as const }));
 

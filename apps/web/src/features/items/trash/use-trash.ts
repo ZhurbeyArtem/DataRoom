@@ -18,8 +18,8 @@ export function useRestoreItem(roomId: string) {
     mutationFn: (itemId: string) => itemsApi.restore(itemId),
     onSuccess: (restored) => {
       void client.invalidateQueries({ queryKey: trashKey(roomId) });
-      // Оновлюємо і папку, куди елемент повернувся, і лістинг кореня:
-      // якщо батька встигли видалити, сервер піднімає елемент саме туди.
+      // Refresh both the folder the item returned to and the root listing:
+      // if the parent was deleted meanwhile, the server puts the item there.
       void client.invalidateQueries({ queryKey: itemsKey(restored.parentId ?? roomId) });
       void client.invalidateQueries({ queryKey: itemsKey(roomId) });
     },

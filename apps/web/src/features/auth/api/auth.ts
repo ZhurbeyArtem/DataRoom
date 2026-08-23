@@ -1,8 +1,9 @@
 import { api } from '@/lib/api-client';
 import type { AuthResult, LoginInput, RegisterInput, SessionUser } from '@/types/api';
 
-// Оновлення сесії тут навмисно немає: воно живе в lib/api-client як
-// refreshSession і має бути єдиним, бо refresh-токен ротується.
+// Session refresh is deliberately absent here: it lives in lib/api-client as
+// refreshSession and has to be the only one, because the refresh token
+// rotates.
 
 export const authApi = {
   register: (body: RegisterInput) =>

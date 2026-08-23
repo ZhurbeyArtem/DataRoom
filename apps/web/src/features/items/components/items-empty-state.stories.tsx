@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { ItemsEmptyState } from './items-empty-state';
 
 const meta = {
-  title: 'Елементи/ItemsEmptyState',
+  title: 'Items/ItemsEmptyState',
   component: ItemsEmptyState,
 } satisfies Meta<typeof ItemsEmptyState>;
 
@@ -14,7 +14,7 @@ type Story = StoryObj<typeof meta>;
 export const EmptyRoom: Story = {
   args: {
     variant: 'empty-room',
-    action: <Button variant="outline">Завантажити файли</Button>,
+    action: <Button variant="outline">Upload files</Button>,
   },
 };
 
@@ -25,11 +25,11 @@ export const EmptyFolder: Story = {
 export const NoResults: Story = {
   args: {
     variant: 'no-results',
-    action: <Button variant="outline">Очистити пошук</Button>,
+    action: <Button variant="outline">Clear search</Button>,
   },
 };
 
-/** Глядачеві не пропонуємо створювати — він цього не може. */
+/** A viewer is not invited to create anything — they cannot. */
 export const ReadOnly: Story = {
   args: { variant: 'empty-folder', readOnly: true },
 };

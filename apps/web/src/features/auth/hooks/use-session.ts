@@ -3,9 +3,9 @@ import { refreshSession, setSessionLostHandler } from '@/lib/api-client';
 import { useSessionStore } from '../stores/session.store';
 
 /**
- * Викликається один раз у корені застосунку. Access-токен живе лише
- * в памʼяті, тому після перезавантаження сторінки сесія піднімається
- * з httpOnly-cookie — тим самим /auth/refresh, що й при протуханні токена.
+ * Called once at the app root. The access token lives in memory only, so
+ * after a page reload the session is restored from the httpOnly cookie —
+ * through the same /auth/refresh used when a token expires.
  */
 export function useRestoreSession(): void {
   const status = useSessionStore((state) => state.status);
@@ -14,8 +14,8 @@ export function useRestoreSession(): void {
   const clear = useSessionStore((state) => state.clear);
 
   useEffect(() => {
-    // Коли http-клієнт не зміг оновити токен, застосунок має вийти сам,
-    // а не залишатися з видимим інтерфейсом і мертвими запитами.
+    // When the http client fails to refresh the token, the app must sign
+    // itself out rather than sit there with a visible UI and dead requests.
     setSessionLostHandler(clear);
   }, [clear]);
 
@@ -24,8 +24,8 @@ export function useRestoreSession(): void {
 
     let cancelled = false;
 
-    // refreshSession дедуплікований: подвійний виклик ефекту в StrictMode
-    // або кілька вкладок не спричинять двох ротацій refresh-токена.
+    // refreshSession is deduplicated: a double effect call in StrictMode, or
+    // several tabs, will not cause two rotations of the refresh token.
     void refreshSession().then((session) => {
       if (cancelled) return;
       if (session) setSession(session.user, session.accessToken);

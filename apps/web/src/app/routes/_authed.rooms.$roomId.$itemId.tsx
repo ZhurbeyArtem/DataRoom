@@ -14,9 +14,10 @@ function FolderPage() {
   const rooms = useDataRooms();
   const room = rooms.data?.find((candidate) => candidate.id === roomId);
 
-  // Кімната є у власному списку — отже, ти власник. Якщо ні, ти потрапив сюди
-  // за іменним доступом: жодних дій, лише читання. Без цього отримувач гранту
-  // бачив би кнопки «Нова папка» й «Завантажити», які сервер усе одно відхилив би.
+  // The room is in your own list, therefore you own it. If it is not, you
+  // arrived here through a named grant: no actions, read only. Without this
+  // a grantee would see "New folder" and "Upload" buttons that the server
+  // would reject anyway.
   const isOwner = rooms.isSuccess && room !== undefined;
   const [sharing, setSharing] = useState<ShareTarget | null>(null);
 

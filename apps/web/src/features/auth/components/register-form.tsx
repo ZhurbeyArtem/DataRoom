@@ -13,8 +13,9 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // Довжину перевіряємо й на клієнті: сенсу відправляти свідомо короткий
-  // пароль на сервер немає, а відповідь користувач побачить одразу.
+  // The length is checked on the client too: there is no point sending a
+  // knowingly short password to the server, and the user sees the answer
+  // immediately.
   const tooShort = password.length > 0 && password.length < MIN_PASSWORD;
 
   function submit(event: FormEvent) {
@@ -25,7 +26,7 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
 
   return (
     <form onSubmit={submit} className="space-y-4" noValidate>
-      <Field label="Імʼя" htmlFor="name">
+      <Field label="Name" htmlFor="name">
         <Input
           id="name"
           autoComplete="name"
@@ -46,11 +47,12 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
         />
       </Field>
 
-      {/* Підказка потрібна до введення; далі її замінює або помилка, або нічого. */}
+      {/* The hint is for before typing starts; after that it is replaced by
+          an error or by nothing. */}
       <Field
-        label="Пароль"
+        label="Password"
         htmlFor="password"
-        hint={password.length === 0 ? `Щонайменше ${MIN_PASSWORD} символів` : undefined}
+        hint={password.length === 0 ? `At least ${MIN_PASSWORD} characters` : undefined}
       >
         <Input
           id="password"
@@ -62,7 +64,7 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
         />
         {tooShort && (
           <p className="text-xs text-destructive">
-            Щонайменше {MIN_PASSWORD} символів
+            At least {MIN_PASSWORD} characters
           </p>
         )}
       </Field>
@@ -70,7 +72,7 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
       <FormError message={register.isError ? errorMessage(register.error) : null} />
 
       <Button type="submit" className="w-full" loading={register.isPending} disabled={tooShort}>
-        {register.isPending ? 'Створюємо…' : 'Створити акаунт'}
+        {register.isPending ? 'Creating…' : 'Create account'}
       </Button>
     </form>
   );

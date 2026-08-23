@@ -12,16 +12,16 @@ function LoginPage() {
   return (
     <GuestOnly>
       <AuthShell
-        title="Вхід"
-        subtitle="Продовжте роботу зі своїми кімнатами"
+        title="Sign in"
+        subtitle="Pick up where you left off in your data rooms"
         footer={
           <>
-            Немає акаунта?{" "}
+            No account yet?{" "}
             <Link
               to={paths.register}
               className="font-medium text-foreground underline"
             >
-              Зареєструватися
+              Create one
             </Link>
           </>
         }

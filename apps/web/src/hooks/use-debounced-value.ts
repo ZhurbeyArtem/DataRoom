@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 
 /**
- * Затримка перед запитом. Без неї кожне натискання клавіші летіло б у
- * мережу: «contracts» — це десять запитів, з яких потрібен лише останній.
+ * A delay before the request. Without it every keystroke would hit the
+ * network: "contracts" is ten requests of which only the last one matters.
  */
 export function useDebouncedValue<T>(value: T, delayMs = 300): T {
   const [debounced, setDebounced] = useState(value);

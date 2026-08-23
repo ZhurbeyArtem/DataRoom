@@ -52,8 +52,8 @@ function Button({
 }: ButtonPrimitive.Props &
   VariantProps<typeof buttonVariants> & {
     /**
-     * Стан запиту: спінер плюс блокування. Друге важливіше за перше —
-     * без нього подвійний клік створює дві папки.
+     * Request state: a spinner plus disabling. The second matters more than
+     * the first — without it a double click creates two folders.
      */
     loading?: boolean
   }) {

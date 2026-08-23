@@ -13,10 +13,10 @@ import type { Item } from '@/types/api';
 import { useDownloadUrl } from '../use-download-url';
 
 /**
- * Рендеримо через <iframe>, а не через бібліотеку рендеру PDF: вбудований
- * переглядач браузера дає прокрутку, зум, пошук по документу й друк
- * безкоштовно. Окрема бібліотека коштувала б мегабайтів бандла заради
- * того самого результату.
+ * Rendered in an <iframe> rather than through a PDF rendering library: the
+ * browser's built-in viewer gives scrolling, zoom, in-document search and
+ * printing for free. A separate library would cost megabytes of bundle for
+ * the same result.
  */
 export function PdfViewerDialog({
   item,
@@ -41,10 +41,11 @@ export function PdfViewerDialog({
           </div>
 
           {link.data && (
-            // Звичайне посилання зі стилями кнопки, а не компонент Button:
-            // він або лишає семантику <button>, або додає role="button" —
-            // в обох випадках читалка оголосить посилання кнопкою, і
-            // «відкрити в новій вкладці» перестане поводитись як посилання.
+            // A plain link styled as a button rather than the Button
+            // component: that either keeps <button> semantics or adds
+            // role="button" — either way a screen reader announces the link
+            // as a button, and "open in a new tab" stops behaving like a
+            // link.
             <a
               href={link.data.url}
               target="_blank"
@@ -52,7 +53,7 @@ export function PdfViewerDialog({
               className={buttonVariants({ variant: 'outline', size: 'sm' })}
             >
               <ExternalLink className="size-3.5" />
-              Відкрити в новій вкладці
+              Open in a new tab
             </a>
           )}
         </DialogHeader>
@@ -62,10 +63,10 @@ export function PdfViewerDialog({
 
           {link.isError && (
             <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-              <h3 className="font-medium">Не вдалося відкрити документ</h3>
+              <h3 className="font-medium">Could not open the document</h3>
               <p className="text-sm text-muted-foreground">{errorMessage(link.error)}</p>
               <Button variant="outline" onClick={() => void link.refetch()}>
-                Спробувати ще
+                Try again
               </Button>
             </div>
           )}
@@ -73,7 +74,7 @@ export function PdfViewerDialog({
           {link.data && (
             <iframe
               src={link.data.url}
-              title={item?.name ?? 'Документ'}
+              title={item?.name ?? 'Document'}
               className="size-full border-0"
             />
           )}

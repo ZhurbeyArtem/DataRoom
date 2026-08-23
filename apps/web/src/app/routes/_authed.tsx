@@ -10,9 +10,9 @@ export const Route = createFileRoute('/_authed')({ component: AuthedLayout });
 function AuthedLayout() {
   const status = useSessionStore((state) => state.status);
 
-  // Поки сесія невідома — скелетон, а не редірект. Інакше кожне
-  // перезавантаження сторінки блимало б формою входу, доки refresh-cookie
-  // не встигне відновити сесію.
+  // While the session is unknown, show a skeleton rather than redirecting.
+  // Otherwise every page reload would flash the sign-in form until the
+  // refresh cookie restores the session.
   if (status === 'unknown') return <AppSkeleton />;
 
   if (status === 'anonymous') return <Navigate to={paths.login} replace />;
@@ -29,7 +29,7 @@ function AuthedLayout() {
               to={paths.sharedWithMe}
               className="text-sm text-muted-foreground hover:text-foreground"
             >
-              Поділилися зі мною
+              Shared with me
             </Link>
           </div>
           <UserMenu />
@@ -40,8 +40,9 @@ function AuthedLayout() {
         <Outlet />
       </main>
 
-      {/* Панель у макеті, а не в папці: аплоад має продовжуватись,
-          коли користувач перейшов в іншу папку чи кімнату. */}
+      {/* The panel lives in the layout rather than in the folder view:
+          uploads must keep running when the user moves to another folder or
+          room. */}
       <UploadPanel />
     </div>
   );

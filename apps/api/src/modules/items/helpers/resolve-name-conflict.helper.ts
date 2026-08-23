@@ -1,9 +1,9 @@
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 
 /**
- * Повертає імʼя, вільне в межах папки: report.pdf → "report (1).pdf".
- * Порівняння регістронезалежне, щоб збігатися з частковим унікальним
- * індексом, побудованим по lower(name).
+ * Returns a name that is free within the folder: report.pdf →
+ * "report (1).pdf". The comparison is case-insensitive to match the partial
+ * unique index built on lower(name).
  */
 export async function resolveNameConflict(
   prisma: PrismaService,
@@ -30,12 +30,13 @@ export async function resolveNameConflict(
     if (!lowerTaken.has(candidate.toLowerCase())) return candidate;
   }
 
-  throw new Error(`Не вдалося підібрати вільне імʼя для "${desiredName}"`);
+  throw new Error(`Could not find a free name for "${desiredName}"`);
 }
 
 /**
- * dot <= 0, а не dot === -1: файл із іменем ".env" має крапку на позиції 0,
- * і різати його на порожню базу з розширенням ".env" було б неправильно.
+ * dot <= 0 rather than dot === -1: a file named ".env" has its dot at
+ * position 0, and splitting it into an empty base with extension ".env"
+ * would be wrong.
  */
 function splitName(name: string): { base: string; extension: string } {
   const dot = name.lastIndexOf('.');

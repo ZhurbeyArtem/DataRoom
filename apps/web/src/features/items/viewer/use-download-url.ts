@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { itemsApi } from '../api/items';
 
-/** Сервер підписує посилання на 60 секунд. */
+/** The server signs the link for 60 seconds. */
 const SIGNATURE_TTL_MS = 60_000;
 
 /**
- * Кешувати надовго не можна: посилання протермінується, і повторне
- * відкриття діалогу дало б мертвий URL. Тому час життя в кеші свідомо
- * коротший за час життя підпису.
+ * It must not be cached for long: the link expires, and reopening the
+ * dialog would hand out a dead URL. So its cache lifetime is deliberately
+ * shorter than the signature's.
  */
 export function useDownloadUrl(itemId: string | null) {
   return useQuery({

@@ -12,16 +12,16 @@ function RegisterPage() {
   return (
     <GuestOnly>
       <AuthShell
-        title="Створення акаунта"
-        subtitle="Кімната належить вам і невидима іншим, доки ви не поділитесь"
+        title="Create an account"
+        subtitle="A room is yours alone and invisible to others until you share it"
         footer={
           <>
-            Уже маєте акаунт?{" "}
+            Already have an account?{" "}
             <Link
               to={paths.login}
               className="font-medium text-foreground underline"
             >
-              Увійти
+              Sign in
             </Link>
           </>
         }

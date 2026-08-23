@@ -1,17 +1,18 @@
 /**
- * Перевірка односторонніх залежностей за bulletproof-react.
+ * One-way dependency check, following bulletproof-react.
  *
- * Канонічно це робить eslint-плагін import через no-restricted-paths, але
- * стандартний лінтер цього шаблону — oxlint — такого правила не має, а тягти
- * другий лінтер заради одного правила дорожче, ніж написати перевірку.
+ * The canonical way is the eslint import plugin with no-restricted-paths,
+ * but this template's default linter — oxlint — has no such rule, and pulling
+ * in a second linter for one rule costs more than writing the check.
  *
- * Правило одне: залежності течуть в один бік.
- *   спільний шар  →  features  →  app
- * Отже:
- *   - спільний шар (components, hooks, lib, utils, config, types) не знає
- *     ні про features, ні про app;
- *   - features не знають про app;
- *   - features не знають одна про одну — усередині фічі імпорти відносні.
+ * One rule: dependencies flow in a single direction.
+ *   shared layer  →  features  →  app
+ * Therefore:
+ *   - the shared layer (components, hooks, lib, utils, config, types) knows
+ *     nothing about features or app;
+ *   - features know nothing about app;
+ *   - features know nothing about each other — inside a feature imports are
+ *     relative.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
@@ -23,12 +24,12 @@ const rules = [
   {
     when: (dir) => SHARED.includes(dir),
     forbid: /^@\/(features|app)\//,
-    why: 'спільний шар не може залежати від features чи app',
+    why: 'the shared layer cannot depend on features or app',
   },
   {
     when: (dir) => dir === 'features',
     forbid: /^@\/app\//,
-    why: 'features не може залежати від app',
+    why: 'features cannot depend on app',
   },
 ];
 
@@ -58,14 +59,14 @@ for (const file of walk(SRC)) {
       }
     }
 
-    // Крос-імпорт між фічами: усередині фічі шлях має бути відносним.
+    // A cross-feature import: inside a feature the path must be relative.
     if (layer === 'features') {
       const other = spec.match(/^@\/features\/([^/]+)/);
       if (other && other[1] !== feature) {
         violations.push({
           rel,
           spec,
-          why: `фіча "${feature}" не може залежати від фічі "${other[1]}"`,
+          why: `feature "${feature}" cannot depend on feature "${other[1]}"`,
         });
       }
     }
@@ -73,14 +74,14 @@ for (const file of walk(SRC)) {
 }
 
 if (violations.length === 0) {
-  console.log('межі шарів дотримано');
+  console.log('layer boundaries respected');
   process.exit(0);
 }
 
-console.error(`порушень меж: ${violations.length}\n`);
+console.error(`boundary violations: ${violations.length}\n`);
 for (const v of violations) {
   console.error(`  ${v.rel}`);
-  console.error(`    імпорт: ${v.spec}`);
-  console.error(`    чому:   ${v.why}\n`);
+  console.error(`    import: ${v.spec}`);
+  console.error(`    why:    ${v.why}\n`);
 }
 process.exit(1);

@@ -27,16 +27,16 @@ export class AuthService {
   async login(dto: LoginDto): Promise<AuthResult> {
     const user = await this.users.findByEmail(dto.email);
 
-    // Однакове повідомлення на "немає такого email" і "невірний пароль":
-    // різні тексти дозволили б перебором з'ясувати, хто зареєстрований.
+    // The same message for "no such email" and "wrong password": different
+    // texts would let an attacker enumerate who is registered.
     if (!user || !(await this.users.verifyPassword(user, dto.password))) {
-      throw new UnauthorizedException('Невірний email або пароль');
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     return this.issue(user);
   }
 
-  /** Ротація: старий refresh відкликається тією ж операцією, що видає новий. */
+  /** Rotation: the old refresh token is revoked by the same call that issues a new one. */
   async refresh(rawToken: string): Promise<AuthResult> {
     const stored = await this.prisma.refreshToken.findUnique({
       where: { tokenHash: hashRefreshToken(rawToken) },
@@ -44,7 +44,7 @@ export class AuthService {
     });
 
     if (!stored || stored.revokedAt || stored.expiresAt < new Date()) {
-      throw new UnauthorizedException('Сесія недійсна');
+      throw new UnauthorizedException('Session is no longer valid');
     }
 
     await this.prisma.refreshToken.update({

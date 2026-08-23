@@ -11,8 +11,9 @@ interface State {
 }
 
 /**
- * Остання сітка безпеки: усе, що не спіймали запити й мутації, доходить сюди.
- * Класовий компонент, бо хуків для цього в React немає — і навряд чи будуть.
+ * The last safety net: anything queries and mutations did not catch ends up
+ * here. A class component, because React has no hook for this — and probably
+ * never will.
  */
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null };
@@ -22,9 +23,9 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    // Консоль — єдиний канал: зовнішнього збирача помилок в MVP немає,
-    // а мовчазне падіння в проді неможливо розслідувати.
-    console.error('Незловлена помилка рендера', error, info.componentStack);
+    // The console is the only channel: there is no external error collector
+    // in the MVP, and a silent crash in production cannot be investigated.
+    console.error('Uncaught render error', error, info.componentStack);
   }
 
   render(): ReactNode {
@@ -35,21 +36,21 @@ export class ErrorBoundary extends Component<Props, State> {
 }
 
 /**
- * Той самий екран використовує роутер: помилку всередині маршруту ловить
- * його власний бар'єр, і зовнішній `ErrorBoundary` її вже не побачить.
+ * The router uses this same screen: an error inside a route is caught by
+ * its own boundary, and the outer `ErrorBoundary` never sees it.
  */
 export function ErrorScreen({ error }: { error: unknown }) {
-  // requestId — той самий ідентифікатор, за яким помилка лежить у таблиці
-  // Log на бекенді. Без нього скаргу «в мене все зламалось» не звести
-  // до конкретного стеку.
+  // requestId is the same identifier under which the error is stored in the
+  // backend Log table. Without it, a "everything broke for me" complaint
+  // cannot be traced to a concrete stack.
   const requestId = error instanceof ApiError ? error.requestId : undefined;
 
   return (
     <div className="mx-auto flex max-w-md flex-col items-center gap-3 px-4 py-24 text-center">
-      <h1 className="text-lg font-medium">Щось пішло не так</h1>
+      <h1 className="text-lg font-medium">Something went wrong</h1>
       <p className="text-sm text-muted-foreground">
-        Сторінка впала на несподіваній помилці. Спробуйте оновити — якщо
-        повторюється, надішліть нам код нижче.
+        The page crashed on an unexpected error. Try reloading — if it keeps
+        happening, send us the code below.
       </p>
       {requestId && (
         <code className="rounded-md bg-muted px-2 py-1 font-mono text-xs">
@@ -57,7 +58,7 @@ export function ErrorScreen({ error }: { error: unknown }) {
         </code>
       )}
       <Button className="mt-2" onClick={() => window.location.reload()}>
-        Оновити сторінку
+        Reload the page
       </Button>
     </div>
   );

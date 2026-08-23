@@ -4,9 +4,9 @@ import { cn } from '@/lib/utils';
 import { useItemsList } from '../hooks/use-items';
 
 interface FolderTreePickerProps {
-  /** Корінь дерева: кімната, у межах якої переміщуємо. */
+  /** Root of the tree: the room the move happens within. */
   roomId: string;
-  /** Що переміщуємо — воно саме й усе його піддерево мають бути недоступні. */
+  /** What is being moved — it and its whole subtree must be unselectable. */
   movedItemId: string;
   selectedId: string | null;
   onSelect: (folderId: string) => void;
@@ -23,7 +23,7 @@ export function FolderTreePicker(props: FolderTreePickerProps) {
 interface TreeLevelProps extends FolderTreePickerProps {
   parentId: string | undefined;
   depth: number;
-  /** Ми вже всередині переміщуваної гілки — усе нижче теж недоступне. */
+  /** We are already inside the moved branch — everything below is barred too. */
   disabled: boolean;
 }
 
@@ -40,7 +40,7 @@ function TreeLevel({
   const folders = (listing.data?.items ?? []).filter((item) => item.type === 'FOLDER');
 
   if (listing.isPending) {
-    return <div className="px-2 py-1.5 text-sm text-muted-foreground">Завантажуємо…</div>;
+    return <div className="px-2 py-1.5 text-sm text-muted-foreground">Loading…</div>;
   }
 
   return (
@@ -51,10 +51,10 @@ function TreeLevel({
           id={folder.id}
           name={folder.name}
           depth={depth}
-          // Саму переміщувану папку й усе під нею вибрати не можна:
-          // це відірвало б гілку від кореня. Той самий інваріант перевіряє
-          // сервер, але користувач не має впиратися в помилку там,
-          // де інтерфейс може просто не дати помилитись.
+          // The folder being moved and everything under it cannot be
+          // chosen: that would detach the branch from the root. The server
+          // checks the same invariant, but the user should not run into an
+          // error where the UI can simply prevent the mistake.
           disabled={disabled || folder.id === movedItemId}
           selected={selectedId === folder.id}
           onSelect={onSelect}
@@ -100,7 +100,7 @@ function TreeNode({
       >
         <button
           type="button"
-          aria-label={expanded ? 'Згорнути' : 'Розгорнути'}
+          aria-label={expanded ? 'Collapse' : 'Expand'}
           className="p-1 text-muted-foreground hover:text-foreground"
           onClick={() => setExpanded((value) => !value)}
         >

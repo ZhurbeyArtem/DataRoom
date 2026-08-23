@@ -2,10 +2,11 @@ import type { Item } from '../../../common/prisma/client';
 import type { ItemDto } from '../interfaces/item.interface';
 
 /**
- * Item.size має тип BigInt, а JSON.stringify на ньому кидає
- * "Do not know how to serialize a BigInt". Замість глобального патчу
- * прототипу конвертуємо розмір у number тут: файл більший за 9 петабайт
- * нам не загрожує, а фронт отримує звичайне число.
+ * Item.size is a BigInt, and JSON.stringify throws
+ * "Do not know how to serialize a BigInt" on it. Instead of patching the
+ * prototype globally, the size is converted to a number here: files larger
+ * than 9 petabytes are not a risk for us, and the frontend gets a plain
+ * number.
  */
 export function toItemDto(item: Item): ItemDto {
   return {

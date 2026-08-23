@@ -7,12 +7,12 @@ export class CreateShareDto {
   @IsEnum(ShareType)
   type!: ShareType;
 
-  @ApiPropertyOptional({ description: 'Обовʼязковий для USER_GRANT' })
+  @ApiPropertyOptional({ description: 'Required for USER_GRANT' })
   @ValidateIf((dto: CreateShareDto) => dto.type === ShareType.USER_GRANT)
-  @IsEmail({}, { message: 'Вкажіть коректний email отримувача' })
+  @IsEmail({}, { message: 'Enter a valid recipient email address' })
   granteeEmail?: string;
 
-  @ApiPropertyOptional({ description: 'ISO-дата; порожньо = безстроково' })
+  @ApiPropertyOptional({ description: 'ISO date; empty means never expires' })
   @IsOptional()
   @IsDateString()
   expiresAt?: string;

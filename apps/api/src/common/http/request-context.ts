@@ -8,8 +8,8 @@ export interface RequestStore {
 const storage = new AsyncLocalStorage<RequestStore>();
 
 /**
- * Носить requestId і userId наскрізь через увесь ланцюжок викликів,
- * щоб їх не доводилось протягувати параметром через кожен сервіс.
+ * Carries requestId and userId through the whole call chain so they don't
+ * have to be threaded as a parameter through every service.
  */
 export const RequestContext = {
   run<T>(store: RequestStore, callback: () => T): T {

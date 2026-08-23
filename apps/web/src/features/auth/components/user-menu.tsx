@@ -19,8 +19,8 @@ export function UserMenu() {
       <Button
         variant="ghost"
         size="icon"
-        aria-label="Вийти"
-        title="Вийти"
+        aria-label="Sign out"
+        title="Sign out"
         loading={logout.isPending}
         onClick={() => logout.mutate()}
       >

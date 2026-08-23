@@ -15,21 +15,21 @@ export function RoomsGrid() {
   const [renaming, setRenaming] = useState<DataRoom | null>(null);
   const [deleting, setDeleting] = useState<DataRoom | null>(null);
 
-  useDocumentTitle('Кімнати');
+  useDocumentTitle('Data rooms');
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-medium">Кімнати</h1>
+          <h1 className="text-2xl font-medium">Data rooms</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Кожна кімната — окреме сховище документів із власним доступом
+            Every room is a separate document store with its own access
           </p>
         </div>
 
         <Button onClick={() => setCreating(true)}>
           <FolderPlus className="size-4" />
-          Створити кімнату
+          New data room
         </Button>
       </div>
 
@@ -63,7 +63,7 @@ export function RoomsGrid() {
   );
 }
 
-/** Скелетон повторює форму майбутнього вмісту, а не крутиться по центру. */
+/** The skeleton mirrors the shape of what is coming, instead of spinning. */
 function GridSkeleton() {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -78,17 +78,17 @@ function GridSkeleton() {
   );
 }
 
-/** Порожній стан із дією: користувач одразу бачить, що робити далі. */
+/** An empty state with an action: the next step is visible immediately. */
 function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
     <div className="rounded-xl border border-dashed py-16 text-center">
-      <h2 className="text-lg font-medium">Ще немає жодної кімнати</h2>
+      <h2 className="text-lg font-medium">No data rooms yet</h2>
       <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-        Створіть першу, щоб почати збирати документи для due diligence
+        Create the first one to start collecting due diligence documents
       </p>
       <Button className="mt-5" onClick={onCreate}>
         <FolderPlus className="size-4" />
-        Створити кімнату
+        New data room
       </Button>
     </div>
   );
@@ -97,10 +97,10 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <div className="rounded-xl border border-destructive/30 bg-destructive/5 py-12 text-center">
-      <h2 className="font-medium">Не вдалося завантажити кімнати</h2>
+      <h2 className="font-medium">Could not load your data rooms</h2>
       <p className="mt-1 text-sm text-muted-foreground">{message}</p>
       <Button variant="outline" className="mt-4" onClick={onRetry}>
-        Спробувати ще
+        Try again
       </Button>
     </div>
   );

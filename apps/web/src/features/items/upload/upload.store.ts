@@ -19,14 +19,15 @@ export interface UploadTask {
 }
 
 /**
- * Три одночасні аплоади: більше не пришвидшує, бо канал усе одно спільний,
- * але помітно збільшує шанс, що частина впаде за таймаутом.
+ * Three uploads at a time: more does not go faster, since the connection is
+ * shared anyway, but it noticeably raises the chance that some of them time
+ * out.
  */
 const MAX_PARALLEL = 3;
 
 interface UploadState {
   tasks: UploadTask[];
-  /** Викликається після кожного підтвердженого файлу — щоб лістинг оновився. */
+  /** Called after each confirmed file so the listing refreshes. */
   onUploaded?: (scopeId: string) => void;
   setOnUploaded: (handler: (scopeId: string) => void) => void;
   enqueue: (files: File[], target: { parentId: string; scopeId: string }) => void;
@@ -46,7 +47,7 @@ export const useUploadStore = create<UploadState>((set, get) => {
     patch(task.id, { status: 'uploading' });
 
     try {
-      // Крок 1: сервер створює рядок у статусі PENDING і видає підписаний URL.
+      // Step 1: the server creates a PENDING row and issues a signed URL.
       const ticket = await itemsApi.createUploadUrl({
         parentId: task.parentId,
         fileName: task.fileName,
@@ -54,7 +55,7 @@ export const useUploadStore = create<UploadState>((set, get) => {
         size: task.size,
       });
 
-      // Крок 2: байти йдуть напряму у сховище, повз наш API.
+      // Step 2: the bytes go straight to storage, bypassing our API.
       await putWithProgress(
         ticket.uploadUrl,
         task.file,
@@ -62,7 +63,7 @@ export const useUploadStore = create<UploadState>((set, get) => {
         task.controller.signal,
       );
 
-      // Крок 3: сервер звіряє розмір із реальним обʼєктом і робить файл видимим.
+      // Step 3: the server verifies the object and makes the file visible.
       await itemsApi.confirmUpload(ticket.itemId);
 
       patch(task.id, { status: 'done', progress: 1 });
@@ -77,7 +78,7 @@ export const useUploadStore = create<UploadState>((set, get) => {
     }
   }
 
-  /** Тримає рівно MAX_PARALLEL активних аплоадів, підбираючи наступні з черги. */
+  /** Keeps exactly MAX_PARALLEL uploads running, pulling the next from the queue. */
   function pump(): void {
     const active = get().tasks.filter((task) => task.status === 'uploading').length;
     const free = MAX_PARALLEL - active;
@@ -116,7 +117,8 @@ export const useUploadStore = create<UploadState>((set, get) => {
     },
 
     retry: (id) => {
-      // Новий AbortController: старий уже спрацював і скасував би повтор одразу.
+      // A fresh AbortController: the old one already fired and would abort
+      // the retry immediately.
       patch(id, {
         status: 'queued',
         progress: 0,

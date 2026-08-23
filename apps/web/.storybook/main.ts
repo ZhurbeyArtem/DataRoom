@@ -1,9 +1,9 @@
 import type { StorybookConfig } from '@storybook/tanstack-react';
 
 /**
- * Story пишемо лише на спільні компоненти (`components/ui` і кілька екранних
- * станів). Story на цілі екрани вимагали б підняти роутер, сесію й моки API —
- * витрата, що в межах MVP нічого не доводить.
+ * Stories are written for shared components only (`components/ui` plus a few
+ * screen states). Stories for whole screens would need a router, a session
+ * and API mocks — an expense that proves nothing within an MVP.
  */
 const config: StorybookConfig = {
   stories: ['../src/**/*.stories.@(ts|tsx)'],

@@ -1,7 +1,8 @@
 /**
- * Що саме відкриваємо в діалозі шарингу. Тип живе у спільному шарі, бо
- * меню дій належить фічі елементів, а сам діалог — фічі доступів, і прямий
- * імпорт між фічами заборонений.
+ * What exactly the share dialog is opened for. The type lives in the shared
+ * layer because the actions menu belongs to the items feature while the
+ * dialog belongs to the shares feature, and direct imports between features
+ * are forbidden.
  */
 export interface ShareTarget {
   id: string;

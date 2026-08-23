@@ -4,10 +4,10 @@ import { authApi } from '../api/auth';
 import { useSessionStore } from '../stores/session.store';
 
 /**
- * Кеш запитів прив'язаний до сесії, а не до вкладки. Без очищення при зміні
- * користувача наступний власник браузера бачив би дані попереднього: у
- * найкращому випадку порожній список замість своїх кімнат, у гіршому —
- * чужі назви, поки не приїде свіжа відповідь.
+ * The query cache belongs to the session, not to the tab. Without clearing
+ * it on a user change, the next person at this browser would see the
+ * previous user's data: at best an empty list instead of their own rooms, at
+ * worst someone else's room names until fresh responses arrive.
  */
 function useResetCacheOnSessionChange() {
   const client = useQueryClient();
@@ -46,8 +46,8 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: () => authApi.logout(),
-    // Сесію гасимо в будь-якому разі: якщо сервер недоступний, користувач
-    // усе одно натиснув «вийти» — тримати його залогіненим було б гірше.
+    // Kill the session either way: if the server is unreachable the user
+    // still pressed "sign out" — keeping them signed in would be worse.
     onSettled: () => {
       resetCache();
       clear();

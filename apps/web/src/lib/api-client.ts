@@ -65,8 +65,19 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   // 401 означає, що протух короткий access-токен. Пробуємо оновити його
   // мовчки: refresh лежить у httpOnly-cookie, тож користувач нічого не бачить.
   if (response.status === 401 && !path.startsWith('/auth/')) {
-    if (await refreshSession()) return unwrap<T>(await send(path, options));
-    onSessionLost?.();
+    if (!(await refreshSession())) {
+      onSessionLost?.();
+      return unwrap<T>(response);
+    }
+
+    const retried = await send(path, options);
+
+    // Свіжий токен і знову 401 — оновлювати більше нічого: сесію
+    // відкликали на сервері. Без цього застосунок лишався б «залогіненим»
+    // із мертвим токеном і сипав помилками замість екрана входу.
+    if (retried.status === 401) onSessionLost?.();
+
+    return unwrap<T>(retried);
   }
 
   return unwrap<T>(response);

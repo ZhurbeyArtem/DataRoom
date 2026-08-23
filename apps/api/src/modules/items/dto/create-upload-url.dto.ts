@@ -1,8 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsInt, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
-
-/** Той самий ліміт виставлено й на самому бакеті — сховище не покладається на нас. */
-const MAX_FILE_BYTES = 50 * 1024 * 1024;
+import { MAX_FILE_BYTES } from '../upload.constants';
 
 export class CreateUploadUrlDto {
   @ApiProperty()

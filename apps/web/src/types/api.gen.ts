@@ -315,6 +315,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/shares/target": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Елемент, на який видано публічне посилання */
+        get: operations["SharesController_target"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/items/{id}/shares": {
         parameters: {
             query?: never;
@@ -627,8 +644,6 @@ export interface operations {
                 /** @description Курсор із попередньої сторінки */
                 cursor?: string;
                 limit?: number;
-                sort?: string;
-                order?: "asc" | "desc";
                 /** @description Папка, вміст якої показуємо */
                 parentId?: string;
                 /** @description Кімната; обовʼязкова, якщо parentId не задано */
@@ -673,8 +688,6 @@ export interface operations {
                 /** @description Курсор із попередньої сторінки */
                 cursor?: string;
                 limit?: number;
-                sort?: string;
-                order?: "asc" | "desc";
                 /** @description Пошук іде по всій кімнаті, а не по одній папці */
                 dataRoomId: string;
                 q: string;
@@ -868,6 +881,25 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SharesController_target: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-share-token": string;
+            };
             path?: never;
             cookie?: never;
         };

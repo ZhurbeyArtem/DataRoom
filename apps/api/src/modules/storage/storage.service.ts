@@ -3,7 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 export interface ObjectMetadata {
-  size: number;
+  /** null означає «сховище не сказало», а не «нуль байтів». */
+  size: number | null;
   mimeType: string | null;
 }
 
@@ -90,15 +91,43 @@ export class StorageService {
     const meta = found.metadata as { size?: number; mimetype?: string } | null;
 
     return {
-      size: meta?.size ?? 0,
+      size: meta?.size ?? null,
       mimeType: meta?.mimetype ?? null,
     };
   }
 
+  /**
+   * Перші `bytes` байтів обʼєкта — рівно стільки, скільки треба, щоб
+   * перевірити сигнатуру файлу. Range замість download(): завантажувати
+   * 50 МБ заради пʼяти байтів не варто.
+   */
+  async readHead(key: string, bytes: number): Promise<string | null> {
+    try {
+      const url = await this.createSignedDownloadUrl(key, 30);
+      const response = await fetch(url, { headers: { Range: `bytes=0-${bytes - 1}` } });
+
+      if (!response.ok) return null;
+
+      return Buffer.from(await response.arrayBuffer()).toString('latin1');
+    } catch (error) {
+      this.logger.error(`readHead(${key}): ${(error as Error).message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Кидає при відмові, а не ковтає її: обидва виклики видаляють блоби перед
+   * рядками в БД, і кожен має сам вирішити, чи можна після невдачі стирати
+   * ключі. Мовчазна помилка тут означала б назавжди загублені обʼєкти.
+   */
   async remove(keys: string[]): Promise<void> {
     if (keys.length === 0) return;
 
     const { error } = await this.client.storage.from(this.bucket).remove(keys);
-    if (error) this.logger.error(`remove(${keys.length} обʼєктів): ${error.message}`);
+
+    if (error) {
+      this.logger.error(`remove(${keys.length} обʼєктів): ${error.message}`);
+      throw new InternalServerErrorException('Не вдалося прибрати файли зі сховища');
+    }
   }
 }

@@ -2,10 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { BaseCrudService } from '../../common/crud/base-crud.service';
 import { DataRoom, ItemType, Prisma } from '../../common/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
+
+/** Supabase не любить надто довгих списків на видалення — ріжемо партіями. */
+const REMOVE_BATCH = 100;
 
 @Injectable()
 export class DataRoomsService extends BaseCrudService<Prisma.DataRoomDelegate> {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {
     super(prisma.dataRoom);
   }
 
@@ -62,12 +69,33 @@ export class DataRoomsService extends BaseCrudService<Prisma.DataRoomDelegate> {
   }
 
   /**
-   * Видалення спирається на onDelete: Cascade у схемі — Postgres сам прибирає
-   * всі Item і Share цієї кімнати. Ручний обхід дерева був би і повільнішим,
-   * і менш надійним. Блоби зі сховища прибирає фонова задача.
+   * Рядки прибирає onDelete: Cascade у схемі — Postgres сам стирає всі Item
+   * і Share цієї кімнати. А от блоби доводиться зібрати ЗАЗДАЛЕГІДЬ: разом
+   * із рядками зникають і storageKey, після чого об'єкти у сховищі стають
+   * недосяжними назавжди — фонова чистка шукає лише незавершені аплоади.
+   *
+   * Порядок такий самий, як у CleanupService: спершу сховище, потім БД.
+   * Якщо сховище відмовить, кімната лишиться на місці й спробу можна
+   * повторити — це краще, ніж втратити ключі разом із рядками.
    */
   async remove(roomId: string, ownerId: string): Promise<void> {
     await this.assertOwned(roomId, ownerId);
+
+    // Кошик сюди теж входить: видалення кімнати остаточне, і м'яко
+    // видалені файли переживати її не мають.
+    const files = await this.prisma.item.findMany({
+      where: { dataRoomId: roomId, storageKey: { not: null } },
+      select: { storageKey: true },
+    });
+
+    const keys = files
+      .map((row) => row.storageKey)
+      .filter((key): key is string => key !== null);
+
+    for (let from = 0; from < keys.length; from += REMOVE_BATCH) {
+      await this.storage.remove(keys.slice(from, from + REMOVE_BATCH));
+    }
+
     await this.delete({ where: { id: roomId } });
   }
 }

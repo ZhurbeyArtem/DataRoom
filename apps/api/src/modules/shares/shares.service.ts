@@ -86,12 +86,19 @@ export class SharesService extends BaseCrudService<Prisma.ShareDelegate> {
   /**
    * Відкликання не видаляє рядок: має лишатися слід, що доступ був і його
    * забрали. Умова по ownerId — щоб чужий доступ не відкликав хтось інший.
+   *
+   * Порожній count означає одне з трьох: доступу немає, він чужий або вже
+   * відкликаний. Відповідь на всі три — те саме 404, що й скрізь; головне,
+   * що вона не «успіх». Інакше інтерфейс казав би «доступ відкликано» там,
+   * де він лишився живим, — наприклад, коли id застарів після рефетчу.
    */
   async revoke(shareId: string, ownerId: string): Promise<void> {
-    await this.prisma.share.updateMany({
+    const { count } = await this.prisma.share.updateMany({
       where: { id: shareId, revokedAt: null, item: { dataRoom: { ownerId } } },
       data: { revokedAt: new Date() },
     });
+
+    if (count === 0) throw new NotFoundException('Доступ не знайдено');
   }
 
   /**

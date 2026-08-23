@@ -14,6 +14,25 @@ interface FolderDropZoneProps {
   children: ReactNode;
 }
 
+/**
+ * Спільна для обох шляхів аплоаду. Атрибут accept на <input> лише підказує
+ * діалогу, що показати першим: користувач перемикає його на «Усі файли»
+ * і вибирає будь-що, тому відсіювати доводиться однаково і після вибору
+ * кнопкою, і після перетягування.
+ */
+function acceptPdfs(files: File[], enqueue: (files: File[]) => void): void {
+  const pdfs = files.filter((file) => file.type === ACCEPTED);
+  const rejected = files.length - pdfs.length;
+
+  if (rejected > 0) {
+    toast.warning(
+      `Пропущено ${plural(rejected, 'файл', 'файли', 'файлів')}: підтримуються лише PDF`,
+    );
+  }
+
+  if (pdfs.length > 0) enqueue(pdfs);
+}
+
 export function FolderDropZone({ parentId, scopeId, children }: FolderDropZoneProps) {
   const enqueue = useUploadStore((state) => state.enqueue);
   const [dragging, setDragging] = useState(false);
@@ -21,24 +40,13 @@ export function FolderDropZone({ parentId, scopeId, children }: FolderDropZonePr
   // елементах, тож проста прапорцева змінна блимала б при русі курсора.
   const depth = useRef(0);
 
-  function accept(files: File[]) {
-    const pdfs = files.filter((file) => file.type === ACCEPTED);
-    const rejected = files.length - pdfs.length;
-
-    if (rejected > 0) {
-      toast.warning(
-        `Пропущено ${plural(rejected, 'файл', 'файли', 'файлів')}: підтримуються лише PDF`,
-      );
-    }
-
-    if (pdfs.length > 0) enqueue(pdfs, { parentId, scopeId });
-  }
-
   function onDrop(event: DragEvent) {
     event.preventDefault();
     depth.current = 0;
     setDragging(false);
-    accept([...event.dataTransfer.files]);
+    acceptPdfs([...event.dataTransfer.files], (files) =>
+      enqueue(files, { parentId, scopeId }),
+    );
   }
 
   return (
@@ -90,8 +98,9 @@ export function UploadButton({ parentId, scopeId }: { parentId: string; scopeId:
         multiple
         hidden
         onChange={(event) => {
-          const files = [...(event.target.files ?? [])];
-          if (files.length > 0) enqueue(files, { parentId, scopeId });
+          acceptPdfs([...(event.target.files ?? [])], (files) =>
+            enqueue(files, { parentId, scopeId }),
+          );
           // Скидаємо значення, інакше вибір того самого файлу вдруге
           // не викличе change.
           event.target.value = '';

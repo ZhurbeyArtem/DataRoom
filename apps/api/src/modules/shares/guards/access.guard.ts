@@ -8,6 +8,18 @@ import type { AccessResult, AccessRole, Principal } from '../interfaces/access.i
 
 type GuardedRequest = Request & { user?: AuthUser; access?: AccessResult };
 
+/**
+ * Гварди виконуються ДО пайпів, тому сюди тіло й query приходять такими,
+ * якими їх надіслали: рядком, масивом, обʼєктом. Передати таке в Prisma
+ * означає отримати 500 і рядок у таблиці Log з волі будь-кого ззовні,
+ * тож форму id перевіряємо самі.
+ */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function asItemId(value: unknown): string | undefined {
+  return typeof value === 'string' && UUID.test(value) ? value : undefined;
+}
+
 @Injectable()
 export class AccessGuard implements CanActivate {
   constructor(
@@ -49,16 +61,19 @@ export class AccessGuard implements CanActivate {
    * Логіка перевірки при цьому одна.
    */
   private resolveTarget(request: GuardedRequest, principal: Principal): Promise<AccessResult> {
-    const params = request.params as Record<string, string | undefined>;
-    const body = request.body as Record<string, string | undefined> | undefined;
-    const query = request.query as Record<string, string | undefined>;
+    const params = request.params as Record<string, unknown>;
+    const body = request.body as Record<string, unknown> | undefined;
+    const query = request.query as Record<string, unknown>;
 
-    const itemId = params.id ?? body?.parentId ?? query.parentId;
+    const itemId =
+      asItemId(params.id) ?? asItemId(body?.parentId) ?? asItemId(query.parentId);
+
     if (itemId) return this.access.resolve(itemId, principal);
 
     // Лістинг кореня просять по кімнаті — доступ до кімнати це доступ
     // до її кореневої папки.
-    if (query.dataRoomId) return this.access.resolveForRoom(query.dataRoomId, principal);
+    const roomId = asItemId(query.dataRoomId);
+    if (roomId) return this.access.resolveForRoom(roomId, principal);
 
     throw new NotFoundException('Елемент не знайдено');
   }

@@ -74,11 +74,11 @@ export abstract class BaseCrudService<TDelegate extends PrismaDelegate> {
    * що наступна сторінка існує, без окремого count-запиту.
    */
   queryBuilder(query: ListQueryDto, config: KeysetConfig): BuiltQuery {
-    const order = query.order ?? 'asc';
     const limit = query.limit ?? config.defaultLimit ?? 50;
 
+    // Завжди asc: саме цей напрямок закладений у keysetWhere.
     const where = query.cursor ? keysetWhere(decodeCursor(query.cursor)) : {};
-    const orderBy = config.fields.map(({ field }) => ({ [field]: order }));
+    const orderBy = config.fields.map(({ field }) => ({ [field]: 'asc' as const }));
 
     return { where, orderBy, take: limit + 1 };
   }

@@ -48,11 +48,17 @@ export class CleanupService {
 
     if (orphans.length === 0) return 0;
 
-    await this.storage.remove(
-      orphans
-        .map((row) => row.storageKey)
-        .filter((key): key is string => key !== null),
-    );
+    try {
+      await this.storage.remove(
+        orphans
+          .map((row) => row.storageKey)
+          .filter((key): key is string => key !== null),
+      );
+    } catch {
+      // Рядки лишаються на місці — наступний прогін спробує ще раз.
+      // Помилку вже записав StorageService.
+      return 0;
+    }
 
     const deleted = await this.prisma.item.deleteMany({
       where: { id: { in: orphans.map((row) => row.id) } },

@@ -400,26 +400,3 @@ this repository.
 a time, with a human review checkpoint after each. The workflow was
 deliberately not "generate and hope": every task ended with a real check in
 the browser and a clean console before the next one started.
-
-**Where AI was clearly worth it:** boilerplate with a lot of small correct
-details — DTOs and validation, Prisma queries, the keyset cursor
-implementation, the layered frontend scaffolding, Storybook stories. Also
-review passes: a `/code-review` pass over the finished code surfaced ten real
-issues, of which eight were fixed (the PDF signature check, cursor direction,
-orphaned storage objects on room deletion, silent `revoke`, unvalidated
-guard input, and others).
-
-**Where the human decided:** scope and trade-offs (dropping Google OAuth,
-skipping the upload-retry rework as too expensive for its value), all the
-"do we accept this gap" calls, and every check against reality — the
-seven-figure detail that a passing typecheck is not the same as a working
-app.
-
-**Where AI got it wrong.** Worth recording honestly: the deployment build
-failed on the first attempt because `prisma generate` was missing from the
-build script — the generated client is gitignored, so it simply did not exist
-on the server. Comments in a couple of places also claimed guarantees the
-code did not deliver (`confirmUpload` "verifies the size" while it did not;
-`remove` promising a retry that a swallowed error made impossible). Both were
-caught by review, and both are the same failure mode: prose written next to
-code is not evidence about that code.

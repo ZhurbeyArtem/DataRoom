@@ -2,7 +2,6 @@ import { useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field, FormError } from './auth-shell';
-import { GoogleSection } from './google-button';
 import { errorMessage } from '@/utils/error-message';
 import { useLogin } from '../hooks/use-auth-mutations';
 
@@ -46,8 +45,6 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
       <Button type="submit" className="w-full" loading={login.isPending}>
         {login.isPending ? 'Входимо…' : 'Увійти'}
       </Button>
-
-      <GoogleSection />
     </form>
   );
 }

@@ -2,7 +2,6 @@ import { useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field, FormError } from './auth-shell';
-import { GoogleSection } from './google-button';
 import { errorMessage } from '@/utils/error-message';
 import { useRegister } from '../hooks/use-auth-mutations';
 
@@ -73,8 +72,6 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
       <Button type="submit" className="w-full" loading={register.isPending} disabled={tooShort}>
         {register.isPending ? 'Створюємо…' : 'Створити акаунт'}
       </Button>
-
-      <GoogleSection />
     </form>
   );
 }

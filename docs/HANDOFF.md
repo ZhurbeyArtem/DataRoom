@@ -25,12 +25,10 @@
 
 | № | Задача | Потребує користувача |
 | --- | --- | --- |
-| 4 | Вхід через Google | так: OAuth-клієнт у Google Cloud Console |
 | 21 | Деплой: API на Render, фронт на Vercel, БД на Supabase | так: акаунти |
 | 22 | README (дизайн-рішення, ERD, How it scales, нотатка про AI) | ні |
 
-Задачі 4 і 21 логічно робити поруч: обидві впираються в зовнішні акаунти,
-і redirect URI для Google краще заводити одразу з продакшн-адресою.
+Задача 4 (вхід через Google) знята з обсягу рішенням від 23.08.2026.
 
 ## Як запустити
 
@@ -95,9 +93,6 @@ Supabase використовується **лише як сховище фай�
 `components/access-denied-screen`, `items-empty-state`, `item-breadcrumbs`
 і `UploadRow` (експортований з `upload-panel` саме заради story).
 Запуск — `npm run storybook` у `apps/web`, порт 6006.
-
-**Кнопка Google схована за `VITE_GOOGLE_AUTH=false`** і не рендериться, доки
-не зроблено задачу 4.
 
 ## Відомі прогалини
 

@@ -12,7 +12,4 @@ function required(name: string, value: string | undefined): string {
 
 export const env = {
   API_URL: required('VITE_API_URL', import.meta.env.VITE_API_URL as string | undefined),
-
-  /** Вимкнено, доки не заведено OAuth-клієнт у Google Cloud Console. */
-  GOOGLE_AUTH_ENABLED: import.meta.env.VITE_GOOGLE_AUTH === 'true',
 } as const;
